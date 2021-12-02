@@ -1,0 +1,9 @@
+version: '3.0'
+services:
+  meteor:
+    build: shooting-stars-meteor
+    ports:
+      - 2400:3000
+    volumes:
+      - ./shooting-stars-meteor:/home/node/src
+    command: /home/node/.meteor/meteor
