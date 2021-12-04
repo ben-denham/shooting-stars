@@ -1,16 +1,17 @@
 version: '3.0'
 services:
   web:
-    build: shooting-stars-meteor
+    build: web
     ports:
       - 2500:2500
     volumes:
-      - ./shooting-stars-meteor:/home/node/src
+      - ./web:/home/node/src
     command: ['/home/node/.meteor/meteor', 'run', '--port', '2500']
   controller:
-    build: shooting-stars-python
-    command: ['python', '-m', 'shooting_stars']
+    build: controller
+    #command: ['python', '-m', 'shooting_stars']
+    command: ['echo', 'disabled']
     volumes:
-      - ./shooting-stars-python:/home/coder/src
+      - ./controller:/home/coder/src
     # Connect to host network for visibility of light devices
     network_mode: "host"
