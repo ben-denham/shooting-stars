@@ -1,5 +1,10 @@
 import { Mongo } from 'meteor/mongo';
 
 export const LIGHT_COUNT = 10;
+export const COLOUR_MODES = [
+  'white',
+  'colour',
+  'rainbow',
+];
 
 export const LightsCollection = new Mongo.Collection('lights');

@@ -1,5 +1,7 @@
 import { Meteor } from 'meteor/meteor';
-import { LightsCollection, LIGHT_COUNT } from '/imports/api/lights';
+import { LightsCollection, LIGHT_COUNT } from '/imports/db/LightsCollection';
+import '/imports/api/lightsMethods';
+import '/imports/api/lightsPublications';
 
 Meteor.startup(() => {
   // Initialise lights.

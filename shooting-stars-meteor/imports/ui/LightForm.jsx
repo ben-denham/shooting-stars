@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import classNames from 'classnames';
 import {createUseStyles} from 'react-jss';
+import { Meteor } from 'meteor/meteor';
 
 const useStyles = createUseStyles({
   activeButton: {
@@ -10,17 +11,17 @@ const useStyles = createUseStyles({
 
 const COLOUR_MODE_CONFIGS = [
   {
-    mode: 'white',
+    colourMode: 'white',
   },
   {
-    mode: 'colour',
+    colourMode: 'colour',
   },
   {
-    mode: 'rainbow',
+    colourMode: 'rainbow',
   },
 ];
 
-export const LightForm = ({ light, updateLight }) => {
+export const LightForm = ({ light }) => {
   const classes = useStyles();
 
   return (
@@ -31,15 +32,13 @@ export const LightForm = ({ light, updateLight }) => {
        <div>
          {COLOUR_MODE_CONFIGS.map((modeConfig) => (
            <button
-             key={modeConfig.mode}
+             key={modeConfig.colourMode}
              className={classNames({
-               [classes.activeButton]: (light.colourMode === modeConfig.mode)
+               [classes.activeButton]: (light.colourMode === modeConfig.colourMode)
              })}
-             onClick={() => updateLight(light, {
-                 colourMode: modeConfig.mode
-               })}
+             onClick={() => Meteor.call('lights.setColourMode', light._id, modeConfig.colourMode)}
            >
-             {modeConfig.mode}
+             {modeConfig.colourMode}
            </button>
          ))}
        </div>}
