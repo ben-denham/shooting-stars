@@ -2,7 +2,7 @@ import { Meteor } from 'meteor/meteor';
 import { check } from 'meteor/check';
 import { LightsCollection, COLOUR_MODES } from '/imports/db/LightsCollection';
 
-Meteor.methods({
+export const lightsMethods = {
   'lights.setColourMode'(lightId, colourMode) {
     check(lightId, String);
     check(colourMode, String);
@@ -15,4 +15,6 @@ Meteor.methods({
       $set: { colourMode }
     });
   }
-});
+};
+
+Meteor.methods(lightsMethods);

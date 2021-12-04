@@ -8,3 +8,10 @@ export const COLOUR_MODES = [
 ];
 
 export const LightsCollection = new Mongo.Collection('lights');
+
+// Deny all client-side updates on the Lists collection
+LightsCollection.deny({
+  insert() { return true; },
+  update() { return true; },
+  remove() { return true; },
+});
