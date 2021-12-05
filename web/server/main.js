@@ -11,8 +11,8 @@ Meteor.startup(() => {
       LightsCollection.insert({
         idx,
         colourMode: 'white',
-        colourHue: 255,
-        colourSaturation: 255,
+        colourHue: 0.0,
+        colourSaturation: 1.0,
         animation: 'static',
       });
     }

@@ -19,6 +19,9 @@ const COLOUR_MODE_CONFIGS = [
   {
     colourMode: 'rainbow',
   },
+  {
+    colourMode: 'gradual',
+  },
 ];
 
 export const LightForm = ({ light }) => {

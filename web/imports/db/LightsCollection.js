@@ -5,6 +5,7 @@ export const COLOUR_MODES = [
   'white',
   'colour',
   'rainbow',
+  'gradual',
 ];
 
 export const LightsCollection = new Mongo.Collection('lights');
