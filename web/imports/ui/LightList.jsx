@@ -3,7 +3,7 @@ import React from 'react';
 const Light = ({ light, onClick }) => {
   return (
     <div onClick={onClick}>
-      Light {light.idx} ({light.colourMode})
+      Light {light.idx} ({light.colourMode}, {light.colourHue}, {light.colourSaturation}, {light.animation})
     </div>
   );
 }

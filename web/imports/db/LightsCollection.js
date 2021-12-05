@@ -7,6 +7,12 @@ export const COLOUR_MODES = [
   'rainbow',
   'gradual',
 ];
+export const ANIMATIONS = [
+  'static',
+  'twinkle',
+  'rain',
+  'wave',
+];
 
 export const LightsCollection = new Mongo.Collection('lights');
 
