@@ -66,7 +66,7 @@ class AnimationState:
         seconds_between_rain = 1 / FRAMES_PER_SECOND
         rain_drops_per_second = 10
         rain_fade_seconds = 2
-        rain_drops = int(round(rain_drops_per_second / FRAMES_PER_SECOND))
+        rain_drops = int(round(rain_drops_per_second * FRAMES_PER_SECOND))
         rain_fade = (1 / (FRAMES_PER_SECOND * rain_fade_seconds))
         self.rain_brightness = np.maximum(0, self.rain_brightness - rain_fade)
         if (frame_idx % (FRAMES_PER_SECOND * seconds_between_rain)) == 0:

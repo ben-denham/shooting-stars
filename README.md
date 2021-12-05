@@ -27,6 +27,7 @@ meteor deploy <subdomain>.au.meteorapp.com --free --mongo
   numpy support.
 * Place `controller/shooting-stars.service` in `/etc/systemd/system/`,
   updating the subdomain name.
-* Start with `sudo service shooting-stars restart`
+* Start with `sudo systemctl restart shooting-stars`
+* Start at boot with `sudo systemctl enable shooting-stars`
 * View logs with `journalctl -fu shooting-stars.service`
 * Reload changes to service file with `sudo systemctl daemon-reload`
