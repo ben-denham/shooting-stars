@@ -2,6 +2,8 @@ from io import BytesIO
 import numpy as np
 import xled
 
+FRAME_DTYPE = np.ubyte
+
 class Device:
 
     def __init__(self, *, ip_address, hw_address):
@@ -19,7 +21,7 @@ class Device:
     def set_frame_array(self, array: np.ndarray):
         """array should have a row for each LED, and a column for each RGBW
         component, with integer values."""
-        assert array.dtype == np.ubyte
+        assert array.dtype == FRAME_DTYPE
         with BytesIO() as frame:
             # C-order writes each row sequentially
             array_bytes = array.tobytes(order='C')

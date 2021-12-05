@@ -4,7 +4,7 @@ from argparse import ArgumentParser
 
 from .subscription import Subscription
 from .device import Device
-from .animation import run_animation
+from .animation import run_animation, AnimationState
 
 parser = ArgumentParser(prog='shooting_stars',
                         description='Christmas lights controller')
@@ -27,11 +27,13 @@ def main():
     lights_sub.start()
 
     try:
+        animation_state = AnimationState()
         while True:
             try:
                 run_animation(
                     device=Device.discover(),
                     lights=lights_sub.state,
+                    animation_state=animation_state,
                 )
             except Exception as ex:
                 # Any exception will result in us reconnecting and
