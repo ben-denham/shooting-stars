@@ -29,4 +29,4 @@ meteor deploy <subdomain>.au.meteorapp.com --free --mongo
   updating the subdomain name.
 * Start with `sudo service shooting-stars restart`
 * View logs with `journalctl -fu shooting-stars.service`
-
+* Reload changes to service file with `sudo systemctl daemon-reload`

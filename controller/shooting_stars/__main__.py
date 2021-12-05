@@ -21,7 +21,7 @@ def main():
     )
 
     lights_sub = Subscription(
-        url=f'{args.meteor_host}/websocket',
+        url=f'{args.meteor_url}/websocket',
         name='lights',
     )
     lights_sub.start()
