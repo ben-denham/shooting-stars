@@ -9,7 +9,7 @@ services:
     command: ['/home/node/.meteor/meteor', 'run', '--port', '2500']
   controller:
     build: controller
-    command: ['python', '-m', 'jurigged', '-m', 'shooting_stars', 'localhost:2500', '--log-level=info']
+    command: ['python', '-m', 'jurigged', '-m', 'shooting_stars', 'ws://localhost:2500', '--log-level=info']
     volumes:
       - ./controller:/home/coder/src
     # Connect to host network for visibility of light devices

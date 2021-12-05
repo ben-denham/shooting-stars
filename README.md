@@ -12,9 +12,21 @@ make deps
 make run
 ```
 
-## Deployment
+## Web Deployment
 
 ```
 make run-bash service=web
 meteor deploy <subdomain>.au.meteorapp.com --free --mongo
 ```
+
+## Controller Deployment
+
+* Install dependencies with `python -m pip install -r
+  controller/requirements.txt`
+* On raspberry-pi, run `sudo apt-get install libatlas-base-dev` for
+  numpy support.
+* Place `controller/shooting-stars.service` in `/etc/systemd/system/`,
+  updating the subdomain name.
+* Start with `sudo service shooting-stars restart`
+* View logs with `journalctl -fu shooting-stars.service`
+

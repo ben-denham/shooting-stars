@@ -9,7 +9,8 @@ Requires=network.target
 Type=idle
 
 User=pi
-ExecStart=cd /home/pi/shooting-stars/controller && /usr/bin/python -m shooting_stars <subdomain>.au.meteorapp.com
+WorkingDirectory=/home/pi/shooting-stars/controller
+ExecStart=/usr/bin/python -m shooting_stars wss://<subdomain>.au.meteorapp.com --log-level=warning
 
 Restart=always
 RestartSec=5

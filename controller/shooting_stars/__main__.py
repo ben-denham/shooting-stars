@@ -8,8 +8,8 @@ from .animation import run_animation, AnimationState
 
 parser = ArgumentParser(prog='shooting_stars',
                         description='Christmas lights controller')
-parser.add_argument('meteor_host',
-                    help='host:port of Meteor server publishing lights state')
+parser.add_argument('meteor_url',
+                    help='[ws|wss]://host:port of Meteor server publishing lights state')
 parser.add_argument('--log-level', dest='log_level', default='info', type=str)
 
 
@@ -21,7 +21,7 @@ def main():
     )
 
     lights_sub = Subscription(
-        url=f'ws://{args.meteor_host}/websocket',
+        url=f'{args.meteor_host}/websocket',
         name='lights',
     )
     lights_sub.start()
