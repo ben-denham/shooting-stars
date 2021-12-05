@@ -1,0 +1,18 @@
+# Place inside /etc/systemd/system/
+
+[Unit]
+Description=Shooting stars controller
+After=multi-user.target
+Requires=network.target
+
+[Service]
+Type=idle
+
+User=pi
+ExecStart=cd /home/pi/shooting-stars/controller && /usr/bin/python -m shooting_stars <subdomain>.au.meteorapp.com
+
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
