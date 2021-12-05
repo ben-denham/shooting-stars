@@ -3,11 +3,11 @@ from time import sleep, monotonic
 import numpy as np
 from itertools import cycle
 from operator import itemgetter
-import colorsys
 
+from .utils import hsv_to_rgb, hue_to_rgb
 from .device import FRAME_DTYPE
 
-FRAMES_PER_SECOND = 2
+FRAMES_PER_SECOND = 20
 FRAME_DELAY_SECONDS = 1 / FRAMES_PER_SECOND
 
 COMPONENT_COUNT = 4
@@ -42,72 +42,46 @@ SEGMENT_LEDS = list(reversed([
 ]))
 
 
-def hsv_to_rgb(h, s, v):
-    rgb = np.array(colorsys.hsv_to_rgb(h, s, v))
-    return (rgb * 255).round().astype(FRAME_DTYPE)
-
-
-def hue_to_rgb(hues):
-    """Takes a vector array of hues in range [0, 1], and returns a 3
-    column array of RGB values (for max saturation and value). Based
-    on: matplotlib.colors.hsv_to_rgb
-    """
-    i = (hues * 6.0).astype(int)
-    t = (hues * 6.0) - i
-    q = 1.0 - t
-
-    r = np.empty_like(hues)
-    g = np.empty_like(hues)
-    b = np.empty_like(hues)
-
-    idx = i % 6 == 0
-    r[idx] = 1
-    g[idx] = t[idx]
-    b[idx] = 0
-
-    idx = i == 1
-    r[idx] = q[idx]
-    g[idx] = 1
-    b[idx] = 0
-
-    idx = i == 2
-    r[idx] = 0
-    g[idx] = 1
-    b[idx] = t[idx]
-
-    idx = i == 3
-    r[idx] = 0
-    g[idx] = q[idx]
-    b[idx] = 1
-
-    idx = i == 4
-    r[idx] = t[idx]
-    g[idx] = 0
-    b[idx] = 1
-
-    idx = i == 5
-    r[idx] = 1
-    g[idx] = 0
-    b[idx] = q[idx]
-
-    rgb = np.stack([r, g, b], axis=-1)
-    return (rgb * 255).round().astype(FRAME_DTYPE)
-
-
 class AnimationState:
 
     def __init__(self):
         self.rainbow_colours = self.get_random_colours()
         self.gradual_hue = 0
+        self.twinkle_brightness = np.arange(0, LED_COUNT) % 2 == 0
+        self.rain_brightness = np.zeros(LED_COUNT)
+        self.wave_brightness = np.zeros(LED_COUNT)
 
     def tick(self, frame_idx):
-        # Update rainbow colours
-        seconds_between_rainbow_change = 1
-        if (frame_idx % (FRAMES_PER_SECOND * seconds_between_rainbow_change)) == 0:
+        # Rainbow
+        seconds_between_rainbow = 1
+        if (frame_idx % (FRAMES_PER_SECOND * seconds_between_rainbow)) == 0:
             self.rainbow_colours = self.get_random_colours()
 
+        # Twinkle
+        seconds_between_twinkle = 1
+        if (frame_idx % (FRAMES_PER_SECOND * seconds_between_twinkle)) == 0:
+            self.twinkle_brightness = ~self.twinkle_brightness
+
+        # Rain
+        seconds_between_rain = 1 / FRAMES_PER_SECOND
+        rain_drops_per_second = 10
+        rain_fade_seconds = 2
+        rain_drops = int(round(rain_drops_per_second / FRAMES_PER_SECOND))
+        rain_fade = (1 / (FRAMES_PER_SECOND * rain_fade_seconds))
+        self.rain_brightness = np.maximum(0, self.rain_brightness - rain_fade)
+        if (frame_idx % (FRAMES_PER_SECOND * seconds_between_rain)) == 0:
+            self.rain_brightness[np.random.randint(LED_COUNT, size=rain_drops)] = 1
+
+        # Gradual
         gradual_cycle_seconds = 10
         self.gradual_hue += 1 / (FRAMES_PER_SECOND * gradual_cycle_seconds)
+
+        # Wave
+        wave_width = 10
+        self.wave_brightness = np.maximum(0, self.wave_brightness - (1 / wave_width))
+        # Negative index switches direction of lights
+        next_wave_icicle_idx = -(frame_idx % len(ICICLE_LEDS))
+        self.wave_brightness[ICICLE_LEDS[next_wave_icicle_idx]] = 1
 
     def get_random_colours(self):
         hues = np.random.rand(LED_COUNT)
@@ -118,6 +92,7 @@ def render_frame(*, device, lights, animation_state, frame_idx):
     animation_state.tick(frame_idx)
 
     frame = np.zeros((LED_COUNT, COMPONENT_COUNT), dtype=FRAME_DTYPE)
+    brightness = np.ones(LED_COUNT)
 
     for light in sorted(lights.values(), key=itemgetter('idx')):
         light_idx = light['idx']
@@ -127,6 +102,7 @@ def render_frame(*, device, lights, animation_state, frame_idx):
 
         light_leds = SEGMENT_LEDS[light_idx]
 
+        # Colour mode
         if light['colourMode'] == 'white':
             frame[light_leds, W] = 255
         elif light['colourMode'] == 'colour':
@@ -138,7 +114,19 @@ def render_frame(*, device, lights, animation_state, frame_idx):
         else:
             logging.warn('Unrecognised colour mode')
 
-    print(frame, flush=True)
+        # Animation
+        if light['animation'] == 'static':
+            # Default full brightness
+            pass
+        elif light['animation'] == 'twinkle':
+            brightness[light_leds] = animation_state.twinkle_brightness[light_leds]
+        elif light['animation'] == 'rain':
+            brightness[light_leds] = animation_state.rain_brightness[light_leds]
+        elif light['animation'] == 'wave':
+            brightness[light_leds] = animation_state.wave_brightness[light_leds]
+
+    frame = (frame * brightness[:, np.newaxis]).astype(FRAME_DTYPE)
+    #print(frame, flush=True)
     device.set_frame_array(frame)
 
 
