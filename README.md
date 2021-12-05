@@ -1,6 +1,7 @@
 # Shooting Stars
 
-Meteor.js + Python project
+Real-time web-app-controlled Christmas lights, built with Meteor and
+Python.
 
 ## Development Environment
 
