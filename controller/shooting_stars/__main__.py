@@ -1,109 +1,48 @@
-import xled
-from io import BytesIO
-import struct
-import sys
-
-def log(*args):
-    print(*args, flush=True)
-
-
-log('Running!')
-
-device = xled.discover.discover()
-control = xled.ControlInterface(device.ip_address, device.hw_address)
-control.set_mode('rt')
-
-info = control.get_device_info()
-LED_COUNT = info['number_of_led']
-
 from time import sleep
+import logging
+from argparse import ArgumentParser
 
-colours = [
-    (255, 0, 0, 0),
-    (0, 255, 0, 0),
-    (0, 0, 255, 0),
-    (0, 0, 0, 255),
-]
+from .subscription import Subscription
+from .device import Device
+from .animation import run_animation
 
-# j = 0
-# while True:
-#     with BytesIO() as frame:
-#         for i in range(LED_COUNT):
-#             frame.write(struct.pack('>BBBB', *colours[(i + j) % len(colours)]))
-#             # frame.write(struct.pack(
-#             #     '>BBBB',
-#             #     i,
-#             #     (255 if j == 1 else 0),
-#             #     (255 if j == 2 else 0),
-#             #     (255 if j == 3 else 0),
-#             # ))
-#         frame.seek(0)
-#         control.set_rt_frame_socket(frame, version=3)
-#         #control.set_rt_frame_rest(frame)
-#     sleep(1)
-#     j = (j + 1) % len(colours)
-
-import websocket
-import json
-
-def on_message(ws, message):
-    log('msg', message)
-    data = json.loads(message)
-
-    msg = data.get('msg')
-
-    if msg == 'failed':
-        pass
-    elif msg == 'connected':
-        subscribe()
-    elif msg == 'ready':
-        pass
-    elif msg == 'ping':
-        pong = {'msg': 'pong'}
-        if 'id' in data:
-            pong['id'] = data['id']
-        ws.send(json.dumps(pong))
-    elif msg == 'nosub':
-        # Handle error
-        pass
-    elif msg == 'added':
-        pass
-    elif msg == 'changed':
-        pass
-    elif msg == 'removed':
-        pass
-    else:
-        # Ignore other msg types, which are either unknown or we don't
-        # need to handle them.
-        pass
-
-def on_error(ws, error):
-    log('err', error)
-
-def on_close(ws, close_status_code, close_msg):
-    log('close', close_status_code, close_msg)
+parser = ArgumentParser(prog='shooting_stars',
+                        description='Christmas lights controller')
+parser.add_argument('meteor_host',
+                    help='host:port of Meteor server publishing lights state')
+parser.add_argument('--log-level', dest='log_level', default='info', type=str)
 
 
-def subscribe():
-    ws.send(json.dumps({
-        'msg': 'sub',
-        'id': 'controller-sub-lights',
-        'name': 'lights',
-    }))
+def main():
+    args = parser.parse_args()
 
-def connect(ws):
-    ws.send(json.dumps({
-        'msg': 'connect',
-        'version': '1',
-        'support': ['1'],
-    }))
+    logging.basicConfig(
+        level=getattr(logging, args.log_level.upper()),
+    )
 
-websocket.enableTrace(True)
-ws = websocket.WebSocketApp(
-    'ws://localhost:2500/websocket',
-    on_open=connect,
-    on_message=on_message,
-    on_error=on_error,
-    on_close=on_close,
-)
-ws.run_forever()
+    lights_sub = Subscription(
+        url=f'ws://{args.meteor_host}/websocket',
+        name='lights',
+    )
+    lights_sub.start()
+
+    try:
+        while True:
+            try:
+                run_animation(
+                    device=Device.discover(),
+                    lights=lights_sub.state,
+                )
+            except Exception as ex:
+                # Any exception will result in us reconnecting and
+                # starting the animation again.
+                logging.exception('Animation error')
+                # Don't try to reconnect too often
+                sleep(1)
+    finally:
+        # Stop the lights subscription thread.
+        lights_sub.stop()
+
+
+if __name__ == '__main__':
+    main()

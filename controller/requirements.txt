@@ -1,3 +1,4 @@
 numpy==1.21.4
 websocket-client==1.2.1
 xled==0.7.0
+jurigged==0.4.1
