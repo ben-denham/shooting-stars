@@ -9,12 +9,23 @@ import { debounce } from 'lodash';
 import { COLOUR_MODES, ANIMATIONS } from '/imports/db/LightsCollection';
 
 const useStyles = createUseStyles({
+  lightForm: {
+    position: 'relative'
+  },
+  emptyMessage: {
+    position: 'absolute',
+    width: '100%',
+    paddingTop: '20px',
+  },
   activeButton: {
     color: 'red'
+  },
+  invisible: {
+    visibility: 'hidden',
   }
 });
 
-export const LightForm = ({ light }) => {
+export const LightForm = ({ light, className }) => {
   const classes = useStyles();
 
   // Only allow updates once every 0.2 seconds.
@@ -33,52 +44,51 @@ export const LightForm = ({ light }) => {
     Meteor.call('lights.setAnimation', light._id, animation);
   })
 
-  if (!light) {
-    return <div>Select a light!</div>
-  }
-
   const colour = tinycolor.fromRatio({
-    h: light['colourHue'],
+    h: light ? light['colourHue'] : 0,
     s: 1,
     v: 1,
-    a: light['colourSaturation'],
+    a: light ? light['colourSaturation'] : 0,
   }).toHex8String();
 
   return (
-    <div>
-      <div className="colour-modes">
-        {COLOUR_MODES.map((colourMode) => (
-          <button
-            key={colourMode}
-            value={colourMode}
-            className={classNames({
-              [classes.activeButton]: (light.colourMode === colourMode)
-            })}
-            onClick={() => handleColourModeChange(colourMode)}
-          >
-            {colourMode}
-          </button>
-        ))}
+    <div className={classNames(className, classes.lightForm)}>
+      <div className={classNames({[classes.emptyMessage]: true, [classes.invisible]: light})}>
+        Select a light!
       </div>
-      {light.colourMode == 'colour' &&
-       <div className="colour-pickers">
-         <HuePicker color={colour} onChange={handleHueChange}></HuePicker>
-         <AlphaPicker color={colour} onChange={handleSaturationChange}></AlphaPicker>
-       </div>
-      }
-      <div className="animations">
-        {ANIMATIONS.map((animation) => (
-          <button
-            key={animation}
-            value={animation}
-            className={classNames({
-              [classes.activeButton]: (light.animation === animation)
-            })}
-            onClick={() => handleAnimationChange(animation)}
-          >
-            {animation}
-          </button>
-        ))}
+      <div className={classNames({[classes.invisible]: !light})}>
+        <div>
+          {COLOUR_MODES.map((colourMode) => (
+            <button
+              key={colourMode}
+              value={colourMode}
+              className={classNames({
+                [classes.activeButton]: (light?.colourMode === colourMode)
+              })}
+              onClick={() => handleColourModeChange(colourMode)}
+            >
+              {colourMode}
+            </button>
+          ))}
+        </div>
+        <div className={classNames({[classes.invisible]: light?.colourMode != 'colour'})}>
+          <HuePicker color={colour} onChange={handleHueChange}></HuePicker>
+          <AlphaPicker color={colour} onChange={handleSaturationChange}></AlphaPicker>
+        </div>
+        <div>
+          {ANIMATIONS.map((animation) => (
+            <button
+              key={animation}
+              value={animation}
+              className={classNames({
+                [classes.activeButton]: (light?.animation === animation)
+              })}
+              onClick={() => handleAnimationChange(animation)}
+            >
+              {animation}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   )
