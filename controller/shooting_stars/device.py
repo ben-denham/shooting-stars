@@ -63,7 +63,7 @@ class Device:
         self.monitor_thread = None
 
     def run_monitor(self, interval_seconds=5):
-        while not self.monitor_stopped:
+        while not self.monitor_stopped and self.connected:
             sleep(interval_seconds)
             try:
                 # Same as self.control.check_status() but with timeout
