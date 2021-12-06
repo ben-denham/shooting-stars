@@ -23,3 +23,4 @@ dev-error-overlay
 audit-argument-checks
 ddp-rate-limiter
 mixmax:smart-disconnect
+nathantreid:static-assets

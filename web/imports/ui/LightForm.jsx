@@ -7,10 +7,16 @@ import tinycolor from 'tinycolor2';
 import { debounce } from 'lodash';
 
 import { COLOUR_MODES, ANIMATIONS } from '/imports/db/LightsCollection';
+import { getLightPickerColour } from '/imports/ui/colors.js';
+import candycaneStripeSquareImage from '/imports/ui/assets/images/candycane-stripe-square.png';
 
 const useStyles = createUseStyles({
   lightForm: {
-    position: 'relative'
+    position: 'relative',
+    border: '12px solid transparent',
+    borderImage: `url(${candycaneStripeSquareImage})`,
+    borderImageRepeat: 'round',
+    borderImageSlice: 50
   },
   emptyMessage: {
     position: 'absolute',
@@ -44,12 +50,7 @@ export const LightForm = ({ light, className }) => {
     Meteor.call('lights.setAnimation', light._id, animation);
   })
 
-  const colour = tinycolor.fromRatio({
-    h: light ? light['colourHue'] : 0,
-    s: 1,
-    v: 1,
-    a: light ? light['colourSaturation'] : 0,
-  }).toHex8String();
+  const pickerColour = getLightPickerColour(light);
 
   return (
     <div className={classNames(className, classes.lightForm)}>
@@ -72,8 +73,8 @@ export const LightForm = ({ light, className }) => {
           ))}
         </div>
         <div className={classNames({[classes.invisible]: light?.colourMode != 'colour'})}>
-          <HuePicker color={colour} onChange={handleHueChange}></HuePicker>
-          <AlphaPicker color={colour} onChange={handleSaturationChange}></AlphaPicker>
+          <HuePicker color={pickerColour} onChange={handleHueChange}></HuePicker>
+          <AlphaPicker color={pickerColour} onChange={handleSaturationChange}></AlphaPicker>
         </div>
         <div>
           {ANIMATIONS.map((animation) => (

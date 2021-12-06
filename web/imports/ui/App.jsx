@@ -58,6 +58,7 @@ export const App = () => {
          <LightList
            className={classes.lightList}
            lights={lights}
+           selectedLight={selectedLight}
            setSelectedLightId={setSelectedLightId}
          />
          <LightForm
