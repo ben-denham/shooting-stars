@@ -6,6 +6,17 @@ import Snowfall from 'react-snowfall';
 const useStyles = createUseStyles({
   lightList: {
     position: 'relative',
+    background: 'black',
+    border: '12px ridge #a75220'
+  },
+  light: {
+    background: `repeating-linear-gradient(
+      45deg,
+      #FF5757,
+      #FF5757 10px,
+      #FFFFFF 10px,
+      #FFFFFF 20px
+    )`
   }
 });
 
