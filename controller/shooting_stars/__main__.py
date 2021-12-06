@@ -19,45 +19,35 @@ def main():
         level=getattr(logging, args.log_level.upper()),
     )
 
-    lights_sub = Subscription(
-        url=f'{args.meteor_url}/websocket',
-        name='lights',
-    )
-    lights_sub.start()
-
+    lights_sub = None
+    device = None
     try:
+        lights_sub = Subscription(
+            url=f'{args.meteor_url}/websocket',
+            name='lights',
+        )
+        lights_sub.start()
         animation_state = AnimationState()
-        device = None
-        while True:
-            try:
-                logging.info('Connecting to device...')
-                device = Device.discover()
-                logging.info('Connected to device...')
-                device.start_monitor()
-                run_animation(
-                    device=device,
-                    lights=lights_sub.state,
-                    animation_state=animation_state,
-                )
-            except KeyboardInterrupt:
-                raise
-            # Any other exception will result in us reconnecting and
-            # starting the animation again.
-            except Exception as ex:
-                # Don't verbosely log for known errors
-                if isinstance(ex, DeviceTimeout):
-                    logging.warning('Device connection timed out...')
-                else:
-                    logging.exception('Unhandled error')
-                # Don't try to reconnect too often
-                sleep(1)
-            finally:
-                # Clean up device monitor
-                if device is not None:
-                    device.stop_monitor()
+        logging.info('Connecting to device...')
+        try:
+            device = Device.discover()
+        except DeviceTimeout:
+            # Don't verbosely log for known errors
+            logging.warning('Device connection timed out...')
+        logging.info('Connected to device...')
+        if device is not None:
+            device.start_monitor()
+            run_animation(
+                device=device,
+                lights=lights_sub.state,
+                animation_state=animation_state,
+            )
     finally:
-        # Stop the lights subscription thread.
-        lights_sub.stop()
+        # Clean up threads
+        if lights_sub is not None:
+            lights_sub.stop()
+        if device is not None:
+            device.stop_monitor()
 
 
 if __name__ == '__main__':

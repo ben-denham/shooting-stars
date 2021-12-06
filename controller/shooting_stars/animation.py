@@ -135,6 +135,9 @@ def run_animation(*, device, lights, animation_state):
     next_time = monotonic()
     frame_idx = 0
     while True:
+        next_time = next_time + FRAME_DELAY_SECONDS
+        sleep(max(0, next_time - monotonic()))
+
         frame_start_time = monotonic()
         render_frame(
             device=device,
@@ -146,6 +149,3 @@ def run_animation(*, device, lights, animation_state):
 
         # Prevent frame_idx from reaching infinity
         frame_idx = (frame_idx + 1) % 10_000
-
-        next_time = next_time + FRAME_DELAY_SECONDS
-        sleep(max(0, next_time - monotonic()))
