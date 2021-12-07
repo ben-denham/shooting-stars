@@ -7,7 +7,8 @@ import tinycolor from 'tinycolor2';
 import { debounce } from 'lodash';
 
 import { COLOUR_MODES, ANIMATIONS } from '/imports/db/LightsCollection';
-import candycaneStripeSquareImage from '/imports/ui/assets/images/candycane-stripe-square.png';
+
+const candycaneStripeSquareImage = '/images/candycane-stripe-square.png';
 
 const useStyles = createUseStyles({
   lightForm: {

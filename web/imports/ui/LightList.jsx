@@ -3,10 +3,11 @@ import {createUseStyles} from 'react-jss';
 import classNames from 'classnames';
 import Snowfall from 'react-snowfall';
 
-import lightsSegmentImage from '/imports/ui/assets/images/lights-segment.png';
-import candycaneStripeImage from '/imports/ui/assets/images/candycane-stripe.png';
 import { LightButton } from './LightButton';
 import { mediumBreakpoint } from './breakpoints';
+
+const lightsSegmentImage = '/images/lights-segment.png';
+const candycaneStripeImage = '/images/candycane-stripe.png';
 
 const useStyles = createUseStyles({
   lightList: {
