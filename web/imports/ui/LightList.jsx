@@ -18,7 +18,7 @@ const styles = {
     alignItems: 'stretch',
     alignContent: 'space-around'
   },
-  lightButton: (props) => ({
+  lightButton: {
     border: 0,
     padding: 0,
     margin: 0,
@@ -34,8 +34,7 @@ const styles = {
     position: 'relative',
     background: 'transparent',
     zIndex: 0,
-    ...(props ? props.lightCss : {})
-  }),
+  },
   lightBorder: {
     position: 'absolute',
     boxSizing: 'border-box',
@@ -48,13 +47,14 @@ const styles = {
     borderImageRepeat: 'round',
     borderImageSlice: 50
   },
-  lightBackground: {
+  lightBackground: (props) => ({
     position: 'absolute',
     boxSizing: 'border-box',
     width: '100%',
     height: '100%',
-    zIndex: -1
-  },
+    zIndex: -1,
+    ...(props ? props.lightCss.lightBackground : {})
+  }),
   lightImage: {
     display: 'block',
     width: '100%',

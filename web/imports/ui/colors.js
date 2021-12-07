@@ -12,40 +12,31 @@ export const animationCss = {
 };
 
 export const getLightCss = (light) => {
+  let backgroundCss = {
+    background: '#333333',
+    animation: 'unset'
+  };
   if (light.colourMode === 'white') {
-    return {
-      background: '#FDF4DC'
-    };
+    backgroundCss.background = '#FDF4DC';
   }
   else if (light.colourMode === 'colour') {
-    return {
-      background: tinycolor.fromRatio({
-        h: light?.colourHue || 0,
-        s: light?.colourSaturation || 0,
-        v: 1,
-        a: 1,
-      }).toHexString()
-    };
+    backgroundCss.background = tinycolor.fromRatio({
+      h: light?.colourHue || 0,
+      s: light?.colourSaturation || 0,
+      v: 1,
+      a: 1,
+    }).toHexString();
   }
   else if (light.colourMode === 'rainbow') {
-    return {
-      background: 'linear-gradient(to right, #FF3333,#FFFF33,#33FF33,#33FFFF,#3333FF)'
-    };
+    backgroundCss.background = 'linear-gradient(to right, #FF3333,#FFFF33,#33FF33,#33FFFF,#3333FF)';
   }
   else if (light.colourMode === 'gradual') {
-    return {
-      //background: 'hsl(0%, 100%, 70%)',
-      '& > $lightBackground': {
-        background: '#FF3333',
-        animation: '$gradualAnimation 5s infinite',
-      }
-    };
+    backgroundCss.background = '#FF3333';
+    backgroundCss.animation = '$gradualAnimation 5s infinite';
   }
-  else {
-    return {
-      background: '#333333',
-    };
-  }
+  return {
+    lightBackground: backgroundCss,
+  };
 };
 
 export const getLightPickerColour = (light) => {
