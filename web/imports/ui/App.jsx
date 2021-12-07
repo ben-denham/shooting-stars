@@ -5,7 +5,6 @@ import {createUseStyles} from 'react-jss';
 import { LightsCollection } from '/imports/db/LightsCollection';
 import { LightList } from './LightList';
 import { LightForm } from './LightForm';
-import { mediumBreakpoint } from './breakpoints';
 import { LoadingSpinner } from './LoadingSpinner';
 
 const useStyles = createUseStyles({
@@ -25,8 +24,20 @@ const useStyles = createUseStyles({
   },
   lightList: {
     flex: 1,
-  },
-  lightForm: {
+    overflow: 'auto',
+    '&::-webkit-scrollbar': {
+      width: '10px'
+    },
+    '&::-webkit-scrollbar-track': {
+      background: 'transparent'
+    },
+    '&::-webkit-scrollbar-thumb': {
+      background: '#777777',
+      borderRadius: '5px'
+    },
+    '&::-webkit-scrollbar-thumb:hover': {
+      background: '#444444'
+    }
   }
 });
 
