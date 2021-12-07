@@ -171,7 +171,8 @@ export const LightForm = ({ light, setSelectedLightId, className }) => {
                     onClick={() => handleColourModeChange(colourMode)}
                     isSelected={light.colourMode === colourMode}
                     selectedStyle={{
-                      border: '6px solid transparent',
+                      borderStyle: 'solid',
+                      borderWidth: '6px',
                       borderImage: `url(${candycaneStripeImage})`,
                       borderImageRepeat: 'round',
                       borderImageSlice: 50,
@@ -203,7 +204,8 @@ export const LightForm = ({ light, setSelectedLightId, className }) => {
                     onClick={() => handleAnimationChange(animation)}
                     isSelected={light.animation === animation}
                     selectedStyle={{
-                      border: '6px solid transparent',
+                      borderStyle: 'solid',
+                      borderWidth: '6px',
                       borderImage: `url(${candycaneStripeImage})`,
                       borderImageRepeat: 'round',
                       borderImageSlice: 50,

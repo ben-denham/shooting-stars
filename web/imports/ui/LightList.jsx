@@ -62,7 +62,8 @@ export const LightList = ({ lights, selectedLight, setSelectedLightId, className
             onClick={() => handleClick(light)}
             isSelected={selectedLight === light}
             selectedStyle={{
-              border: '6px solid transparent',
+              borderStyle: 'solid',
+              borderWidth: '6px',
               borderImage: `url(${candycaneStripeImage})`,
               borderImageRepeat: 'round',
               borderImageSlice: 50
