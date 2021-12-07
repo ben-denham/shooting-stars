@@ -2,10 +2,17 @@ body {
     padding: 0;
     margin: 0;
     font-family: sans-serif;
-    background: #111111;
+    background: #030303;
     color: white;
 }
 
 html, body, #react-target {
     height: 100%;
+}
+
+@font-face {
+    font-family: 'Courgette';
+    font-style: normal;
+    font-weight: 400;
+    src: url(/fonts/Courgette-Regular.ttf);
 }

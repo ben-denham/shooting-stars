@@ -77,11 +77,14 @@ const useStyles = createUseStyles({
   },
   fullSize: {
     position: 'absolute',
+    top: 0,
+    left: 0,
     boxSizing: 'border-box',
     width: '100%',
     height: '100%',
   },
   button: {
+    display: 'block',
     border: 0,
     padding: 0,
     margin: 0,
@@ -90,7 +93,7 @@ const useStyles = createUseStyles({
       zIndex: 1,
       '& > $lightSelection': {
         boxShadow: '0px 0px 5px 2px white',
-        borderRadius: '9%',
+        borderRadius: '6px',
       }
     },
     cursor: 'pointer',
@@ -135,7 +138,7 @@ const useStyles = createUseStyles({
 });
 
 export const LightButton = ({ light, image, isSelected, selectedStyle,
-                              lightIndex, ...rest }) => {
+                              lightIndex, className, ...rest }) => {
   const { colourMode, colourHue, colourSaturation, animation } = light;
 
   const styleConfig = {
@@ -203,7 +206,7 @@ export const LightButton = ({ light, image, isSelected, selectedStyle,
   const classes = useStyles(styleConfig);
 
   return (
-    <button className={classes.button} {...rest} >
+    <button className={classNames(className, classes.button)} {...rest} >
       <div className={classes.lightBackground}></div>
       <div
         className={classNames({

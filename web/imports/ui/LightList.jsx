@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import {createUseStyles} from 'react-jss';
 import classNames from 'classnames';
 import Snowfall from 'react-snowfall';
@@ -26,20 +26,40 @@ const useStyles = createUseStyles({
     },
     display: 'flex',
     alignItems: 'center',
-  }
+  },
 });
 
 export const LightList = ({ lights, selectedLight, setSelectedLightId, className }) => {
+  const selectedRef = useRef(null);
+  const selectedClass = 'selected';
   const classes = useStyles();
 
+  useEffect(() => {
+    const selectedElements = Array.from(selectedRef.current.getElementsByClassName(selectedClass));
+    selectedElements.forEach((selectedElement) => {
+      setTimeout(() => selectedElement.scrollIntoView({
+        behavior: 'smooth'
+      }), 0);
+    });
+  }, [selectedLight?._id]);
+
+  const handleClick = (light) => {
+    setSelectedLightId(light._id);
+  }
+
   return (
-    <div className={classNames(className, classes.lightList)}>
+    <div className={classNames(className, classes.lightList)} ref={selectedRef}>
       { lights.map((light, lightIndex) =>
-        <div key={ light._id } className={classes.light}>
+        <div key={ light._id }
+             className={classNames({
+               [classes.light]: true,
+               [selectedClass]: (selectedLight === light)
+             })}
+        >
           <LightButton
             light={light}
             image={lightsSegmentImage}
-            onClick={() => setSelectedLightId(light._id)}
+            onClick={() => handleClick(light)}
             isSelected={selectedLight === light}
             selectedStyle={{
               border: '6px solid transparent',

@@ -18,12 +18,12 @@ const useStyles = createUseStyles({
     flexDirection: 'column',
     alignItems: 'stretch',
     justifyContent: 'center',
+    boxShadow: '0 0 30px 15px #303030'
   },
   loading: {
     margin: 'auto'
   },
-  lightList: {
-    flex: 1,
+  scrollable: {
     overflow: 'auto',
     '&::-webkit-scrollbar': {
       width: '10px'
@@ -38,6 +38,14 @@ const useStyles = createUseStyles({
     '&::-webkit-scrollbar-thumb:hover': {
       background: '#444444'
     }
+  },
+  lightList: {
+    extend: 'scrollable',
+    flex: 1,
+  },
+  lightForm: {
+    extend: 'scrollable',
+    background: '#181818'
   }
 });
 
@@ -75,6 +83,7 @@ export const App = () => {
          <LightForm
            className={classes.lightForm}
            light={selectedLight}
+           setSelectedLightId={setSelectedLightId}
          />
        </>}
     </div>
