@@ -13,6 +13,19 @@ const candycaneStripeImage = '/images/candycane-stripe.png';
 const candycaneStripeSquareImage = '/images/candycane-stripe-square.png';
 const smallLightsImage = '/images/small-lights.png';
 
+const COLOUR_MODE_LABELS = {
+  'white': 'White',
+  'colour': 'Colour',
+  'rainbow': 'Random',
+  'gradual': 'Changing',
+};
+const ANIMATION_LABELS = {
+  'static': 'Static',
+  'twinkle': 'Twinkle',
+  'rain': 'Rain',
+  'wave': 'Wave',
+};
+
 const useStyles = createUseStyles({
   lightForm: {
     position: 'relative',
@@ -62,11 +75,17 @@ const useStyles = createUseStyles({
   buttonWrapper: {
     width: '18%',
     height: '18%',
-    borderRadius: '6px',
-    boxShadow: '0 0 5px 5px #555555',
+    '& > button': {
+      boxShadow: '0 0 5px 5px #555555',
+      borderRadius: '6px',
+    },
     '& > button > *': {
       borderRadius: '6px'
     }
+  },
+  buttonLabel: {
+    marginTop: '10px',
+    fontSize: '0.9em',
   },
   invisible: {
     visibility: 'hidden',
@@ -179,6 +198,9 @@ export const LightForm = ({ light, setSelectedLightId, className }) => {
                     }}
                     image={smallLightsImage}
                   />
+                  <div className={classes.buttonLabel}>
+                    {COLOUR_MODE_LABELS[colourMode] || colourMode}
+                  </div>
                 </div>
               ))}
             </div>
@@ -212,6 +234,9 @@ export const LightForm = ({ light, setSelectedLightId, className }) => {
                     }}
                     image={smallLightsImage}
                   />
+                  <div className={classes.buttonLabel}>
+                    {ANIMATION_LABELS[animation] || animation}
+                  </div>
                 </div>
               ))}
             </div>
