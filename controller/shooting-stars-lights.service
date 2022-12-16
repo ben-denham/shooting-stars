@@ -1,7 +1,7 @@
 # Place inside /etc/systemd/system/
 
 [Unit]
-Description=Shooting stars controller
+Description=Shooting stars controller - Lights
 After=multi-user.target
 Requires=network.target
 
@@ -10,7 +10,7 @@ Type=idle
 
 User=pi
 WorkingDirectory=/home/pi/shooting-stars/controller
-ExecStart=/usr/bin/python -m shooting_stars wss://<subdomain>.au.meteorapp.com --log-level=warning
+ExecStart=/usr/bin/python -m shooting_stars wss://<subdomain>.au.meteorapp.com lights <icicles-device-id> --meteor-token=<meteor-token>  --log-level=warning
 
 Restart=always
 RestartSec=5

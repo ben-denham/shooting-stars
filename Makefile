@@ -15,7 +15,7 @@ web-reset-db:
 	docker-compose exec web /home/node/.meteor/meteor mongo
 
 controller-deps:
-	docker-compose run --rm controller python -m pip install --user -r requirements.txt
+	docker-compose run --rm controller-lights python -m pip install --user -r requirements.txt
 
 deps: web-deps controller-deps
 

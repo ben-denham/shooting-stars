@@ -1,3 +1,4 @@
+from datetime import datetime
 import websocket
 import json
 import logging
@@ -23,18 +24,27 @@ class Subscription:
     and based on https://github.com/hharnisc/python-ddp/blob/master/DDPClient.py
     """
 
-    def __init__(self, *, url, name):
+    def __init__(self, *, url, name, token):
         self.url = url
         self.name = name
         self.state = {}
         self.stopped = True
         self.sub_id = 0
         self.ws = None
+        self._uniq_id = 0
+        self.connection_attempts = 0
+        self.token = token
+
+    def _next_id(self):
+        """Get the next id that will be sent to the server"""
+        self._uniq_id += 1
+        return str(self._uniq_id)
 
     def start(self):
         """Run the subscription in a new thread"""
         sub_thread = Thread(target=self.run)
         sub_thread.start()
+        return datetime.now()
 
     def stop(self):
         """Can be called to stop the subscription."""
@@ -65,6 +75,8 @@ class Subscription:
             # Exponential backoff for immediate failures.
             if (monotonic() - attempt_start) < IMMEDIATE_FAILURE_SECONDS:
                 retry_delay_seconds *= 2
+                # Never delay more than 1 minute
+                retry_delay_seconds = min(retry_delay_seconds, 60)
                 logging.warning(f'Waiting {retry_delay_seconds} seconds before restarting websocket')
                 sleep(retry_delay_seconds)
             else:
@@ -94,7 +106,7 @@ class Subscription:
             self.sub_id += 1
             self.send(ws, {
                 'msg': 'sub',
-                'id': f'controller-sub-{self.name}-{self.sub_id}',
+                'id': self._next_id(),
                 'name': self.name,
             })
         elif msg == 'nosub':
@@ -134,3 +146,12 @@ class Subscription:
         """Log closures. This is not guaranteed to be called on every close
         (see: https://websocket-client.readthedocs.io/en/latest/threading.html)"""
         logging.error(f'Subscription closed: code: {close_status_code}, message: {close_message}')
+
+    def call(self, method, params):
+        """Call a Meteor method on the server."""
+        self.send(self.ws, {
+            'msg': 'method',
+            'id': self._next_id(),
+            'method': method,
+            'params': params,
+        })

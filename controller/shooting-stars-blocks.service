@@ -1,0 +1,19 @@
+# Place inside /etc/systemd/system/
+
+[Unit]
+Description=Shooting stars controller - Blocks
+After=multi-user.target
+Requires=network.target
+
+[Service]
+Type=idle
+
+User=pi
+WorkingDirectory=/home/pi/shooting-stars/controller
+ExecStart=/usr/bin/python -m shooting_stars wss://<subdomain>.au.meteorapp.com blocks <strings-device-id> --meteor-token=<meteor-token> --log-level=warning
+
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

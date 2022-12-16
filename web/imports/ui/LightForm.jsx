@@ -29,6 +29,7 @@ const ANIMATION_LABELS = {
 const useStyles = createUseStyles({
   lightForm: {
     position: 'relative',
+    marginBottom: '15px',
   },
   emptyMessage: {
     fontFamily: 'Courgette',
@@ -116,17 +117,7 @@ const useStyles = createUseStyles({
     '& > div > div:first-child > div': {
       background: 'white !important'
     }
-  }),
-  links: {
-    margin: '25px 0 10px 0',
-    '& a': {
-      fontSize: '0.8em',
-      color: 'white',
-      '&:visited': {
-        color: 'white'
-      }
-    }
-  }
+  })
 });
 
 export const LightForm = ({ light, setSelectedLightId, className }) => {
@@ -243,9 +234,6 @@ export const LightForm = ({ light, setSelectedLightId, className }) => {
           </div>
         </>
       )}
-      <div className={classes.links}>
-        <a href="https://github.com/ben-denham/shooting-stars">Source Code on GitHub</a>
-      </div>
     </div>
   );
 }

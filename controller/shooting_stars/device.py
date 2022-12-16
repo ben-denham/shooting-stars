@@ -37,9 +37,9 @@ class Device:
         self.monitor_stopped = False
 
     @classmethod
-    def discover(cls):
+    def discover(cls, device_id):
         try:
-            xled_device = xled.discover.discover(timeout=TIMEOUT_SECONDS)
+            xled_device = xled.discover.discover(find_id=device_id, timeout=TIMEOUT_SECONDS)
         except zmq.error.Again as ex:
             if 'Resource temporarily unavailable' in str(ex):
                 raise DeviceTimeout()

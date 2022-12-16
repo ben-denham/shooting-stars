@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import { useTracker } from 'meteor/react-meteor-data';
 import {createUseStyles} from 'react-jss';
+import classNames from 'classnames';
 
-import { LightsCollection } from '/imports/db/LightsCollection';
-import { LightList } from './LightList';
-import { LightForm } from './LightForm';
-import { LoadingSpinner } from './LoadingSpinner';
+import { LightsPage } from './LightsPage';
+import { BlocksPage } from './BlocksPage';
 
 const useStyles = createUseStyles({
   app: {
@@ -17,75 +16,67 @@ const useStyles = createUseStyles({
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'stretch',
-    justifyContent: 'center',
-    boxShadow: '0 0 30px 15px #303030'
+    background: '#121212',
   },
-  loading: {
-    margin: 'auto'
+  pageMenu: {
+    display: 'flex',
+    gap: '0.2em',
+    zIndex: 1,
+    background: '#080808',
   },
-  scrollable: {
-    overflow: 'auto',
-    '&::-webkit-scrollbar': {
-      width: '10px'
-    },
-    '&::-webkit-scrollbar-track': {
-      background: 'transparent'
-    },
-    '&::-webkit-scrollbar-thumb': {
-      background: '#777777',
-      borderRadius: '5px'
-    },
-    '&::-webkit-scrollbar-thumb:hover': {
-      background: '#444444'
-    }
-  },
-  lightList: {
-    extend: 'scrollable',
+  pageButton: {
     flex: 1,
+    fontFamily: 'Courgette',
+    background: '#444444',
+    border: 'none',
+    color: 'white',
+    fontSize: '1.4em',
+    marginTop: '0.2em',
+    padding: '0.25em 0',
+    borderRadius: '0.4em 0.4em 0 0',
+    cursor: 'pointer',
   },
-  lightForm: {
-    extend: 'scrollable',
-    background: '#181818'
+  selectedPageButton: {
+    background: '#777777',
+  },
+  links: {
+    margin: '10px 0 10px 0',
+    '& a': {
+      fontSize: '0.8em',
+      color: 'white',
+      '&:visited': {
+        color: 'white'
+      }
+    }
   }
 });
 
 export const App = () => {
   const classes = useStyles();
+  const [selectedPageId, setSelectedPageId] = useState('blocks');
 
-  const { lights, isLoading } = useTracker(() => {
-    const handler = Meteor.subscribe('lights');
-
-    if (!handler.ready()) {
-      return { lights: [], isLoading: true };
-    }
-
-    const lights = LightsCollection.find({}, {
-      sort: { idx: 1 }
-    }).fetch();
-
-    return { lights };
-  });
-  const [selectedLightId, setSelectedLightId] = useState(null);
-
-  const selectedLight = lights.find(light => light._id === selectedLightId);
+  const pages = {
+    blocks: 'Blocks',
+    lights: 'Icicles',
+  };
 
   return (
     <div className={classes.app}>
-      {isLoading && <LoadingSpinner className={classes.loading}></LoadingSpinner>}
-      {!isLoading &&
-       <>
-         <LightList
-           className={classes.lightList}
-           lights={lights}
-           selectedLight={selectedLight}
-           setSelectedLightId={setSelectedLightId}
-         />
-         <LightForm
-           className={classes.lightForm}
-           light={selectedLight}
-           setSelectedLightId={setSelectedLightId}
-         />
-       </>}
+      <div className={classes.pageMenu}>
+        {Object.keys(pages).map((pageId, _) =>
+          <button key={pageId}
+                  className={classNames({
+                    [classes.pageButton]: true,
+                    [classes.selectedPageButton]: (selectedPageId == pageId),
+                  })}
+                  onClick={() => setSelectedPageId(pageId)}>{pages[pageId]}</button>
+        )}
+      </div>
+      {(selectedPageId == 'lights') && <LightsPage />}
+      {(selectedPageId == 'blocks') && <BlocksPage />}
+      <div className={classes.links}>
+        <a href="https://github.com/ben-denham/shooting-stars">Source Code on GitHub</a>
+      </div>
     </div>
   );
 };

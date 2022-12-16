@@ -105,7 +105,10 @@ const useStyles = createUseStyles({
     extend: 'fullSize',
     zIndex: -20,
     background: colour,
-    animation: animation
+    animation: animation,
+    width: '98%',
+    height: '98%',
+    margin: 'auto'
   }),
   lightSelection: {
     extend: 'fullSize'

@@ -5,7 +5,7 @@ ENV PATH=$PATH:/home/node/.npm-global/bin
 
 USER node
 
-RUN npm install --global meteor@2.5.1
+RUN npm install --global meteor@2.6.0
 
 RUN mkdir /home/node/src
 WORKDIR /home/node/src

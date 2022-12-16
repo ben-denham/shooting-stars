@@ -6,10 +6,23 @@ services:
       - 2500:2500
     volumes:
       - ./web:/home/node/src
-    command: ['/home/node/.meteor/meteor', 'run', '--port', '2500']
-  controller:
+      - ./meteor-settings.json:/etc/meteor-settings.json
+    command: ['/home/node/.meteor/meteor', 'run', '--port', '2500',
+              '--settings', '/etc/meteor-settings.json']
+  controller-lights:
     build: controller
-    command: ['python', '-m', 'jurigged', '-m', 'shooting_stars', 'ws://localhost:2500', '--log-level=info']
+    command: ['python', '-m', 'jurigged', '-m', 'shooting_stars', 'ws://localhost:2500',
+              'lights', '${ICICLES_TWINKLY_DEVICE_ID}', '--meteor-token=${METEOR_TOKEN}',
+              '--log-level=info']
+    volumes:
+      - ./controller:/home/coder/src
+    # Connect to host network for visibility of light devices
+    network_mode: "host"
+  controller-blocks:
+    build: controller
+    command: ['python', '-m', 'jurigged', '-m', 'shooting_stars', 'ws://localhost:2500',
+              'blocks', '${STRINGS_TWINKLY_DEVICE_ID}', '--meteor-token=${METEOR_TOKEN}',
+              '--log-level=info']
     volumes:
       - ./controller:/home/coder/src
     # Connect to host network for visibility of light devices

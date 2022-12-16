@@ -16,7 +16,7 @@ export const ANIMATIONS = [
 
 export const LightsCollection = new Mongo.Collection('lights');
 
-// Deny all client-side updates on the Lists collection
+// Deny all client-side updates on the Lights collection
 LightsCollection.deny({
   insert() { return true; },
   update() { return true; },
