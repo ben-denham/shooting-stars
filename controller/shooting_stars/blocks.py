@@ -1,10 +1,11 @@
-import dataclasses
 import logging
+from queue import SimpleQueue
+from threading import Thread, Lock
 from time import sleep, monotonic
 
 import numpy as np
 import tetris
-from tetris import MinoType, Move
+from tetris import MinoType
 
 from .device import FRAME_DTYPE, DeviceDisconnected
 
@@ -40,6 +41,8 @@ COLOURS = {
 
 # Number of seconds to wait for a new input before switching to AI mode
 AI_TIMEOUT_SECONDS = 15
+# Number of seconds to wait between AI moves
+AI_MOVE_WAIT_SECONDS = 0.75
 
 
 def get_frame_index(row_i, col_i):
@@ -89,62 +92,78 @@ def render_game(*, device, game):
     device.set_frame_array(frame)
 
 
+class BlocksTrainer:
+
+    def __init__(self):
+        self.train_queue = SimpleQueue()
+        self.test_queue = SimpleQueue()
+        self.stopped = False
+        self.move = None
+        self.move_lock = Lock()
+
+    def start(self):
+        """Run the trainer in a new thread"""
+        monitor_thread = Thread(target=self.run)
+        monitor_thread.start()
+
+    def stop(self):
+        self.stopped = True
+
+    def run(self):
+        while not self.stopped:
+            try:
+                self.train(*self.train_queue.get_nowait())
+            except:
+                pass
+            try:
+                self.test(*self.test_queue.get_nowait())
+            except:
+                pass
+
+    def train(self, board, piece):
+        # TODO
+        pass
+
+    def test(self, board, piece):
+        # TODO
+        y = 0
+        r = 1
+        self.set_move((y, r))
+
+    def set_move(self, move):
+        with self.move_lock:
+            self.move = move
+
+
 class TrainableBlocksGame(tetris.BaseGame):
 
     @classmethod
-    def new_game(cls):
-        return cls(board_size=(GAME_ROWS, COLS))
+    def new_game(cls, trainer):
+        return cls(board_size=(GAME_ROWS, COLS),
+                   trainer=trainer)
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args, trainer: BlocksTrainer, **kwargs) -> None:
         super().__init__(*args, **kwargs)
+        self.trainer = trainer
         self.ai_mode = False
 
     def _lock_piece(self) -> None:
-        """
-        Extend the original _lock_piece() that is called whenever a piece is "placed".
-        """
-        assert self.delta
-        piece = self.piece
-        for x in range(piece.x + 1, self.board.shape[0]):
-            if self.rs.overlaps(dataclasses.replace(piece, x=x)):
-                break
-
-            piece.x = x
-            self.delta.x += 1
-
-        for x, y in piece.minos:
-            self.board[x + piece.x, y + piece.y] = piece.type
-
-        # If all tiles are out of view (half of the internal size), it's a lock-out
-        for x, y in piece.minos:
-            if self.piece.x + x > self.height:
-                break
-        else:
-            self._lose()
-
-        for i, row in enumerate(self.board):
-            if all(row):
-                self.board[0] = 0
-                self.board[1 : i + 1] = self.board[:i]
-                self.delta.clears.append(i)
-
-        self.piece = self.rs.spawn(self.queue.pop())
-
-        # If the new piece overlaps, it's a block-out
-        if self.rs.overlaps(self.piece):
-            self._lose()
-
-        self.hold_lock = False
+        # Train the AI when a user places a piece
+        if not self.ai_mode:
+            self.trainer.train_queue.put((self.board.copy(), self.piece))
+        self.trainer.set_move(None)
+        return super()._lock_piece()
 
 
-def run_blocks(*, device, inputs_sub):
+def run_blocks(*, device, inputs_sub, trainer):
     """Render frames in a continuous loop, raising device errors """
     last_input_timestamp = 0
     next_time = monotonic()
     last_input_time = monotonic()
+    last_ai_time = monotonic()
     web_updates_enabled = True
     while True:
-        game = TrainableBlocksGame.new_game()
+        game = TrainableBlocksGame.new_game(trainer)
 
         while True:
             next_time = next_time + FRAME_DELAY_SECONDS
@@ -165,15 +184,15 @@ def run_blocks(*, device, inputs_sub):
                     if game.ai_mode:
                         # If coming out of ai mode, start a new game,
                         # and ignore the first input.
-                        game = TrainableBlocksGame.new_game()
+                        game = TrainableBlocksGame.new_game(trainer)
                     elif game_input['type'] == 'left':
-                        game.push(Move.left())
+                        game.left()
                     elif game_input['type'] == 'right':
-                        game.push(Move.right())
+                        game.right()
                     elif game_input['type'] == 'rotate':
-                        game.push(Move.rotate(1))
+                        game.rotate()
                     elif game_input['type'] == 'drop':
-                        game.push(Move.hard_drop())
+                        game.hard_drop()
 
                     latest_input_timestamp = max(latest_input_timestamp, game_input['timestamp'])
             last_input_timestamp = latest_input_timestamp
@@ -182,7 +201,24 @@ def run_blocks(*, device, inputs_sub):
             if (monotonic() - last_input_time) > AI_TIMEOUT_SECONDS:
                 game.ai_mode = True
 
+            if game.ai_mode and trainer.move is not None and ((monotonic() - last_ai_time) > AI_MOVE_WAIT_SECONDS):
+                last_ai_time = monotonic()
+                # Move towards the chosen move, one step at a time.
+                target_y, target_r = trainer.move
+                if game.piece.r != target_r:
+                    game.rotate()
+                elif game.piece.y > target_y:
+                    game.left()
+                elif game.piece.y < target_y:
+                    game.right()
+                else:
+                    game.hard_drop()
+
             game.tick()
+
+            if game.ai_mode and trainer.move is None:
+                # Start choosing the next move
+                trainer.test_queue.put((game.board.copy(), game.piece))
 
             # Send game to device and inputs_sub
             try:

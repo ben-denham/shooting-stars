@@ -5,7 +5,7 @@ from argparse import ArgumentParser
 from .subscription import Subscription
 from .device import Device
 from .animation import run_animation, AnimationState
-from .blocks import run_blocks
+from .blocks import BlocksTrainer, run_blocks
 
 ACTIVITIES = ['lights', 'blocks']
 
@@ -61,9 +61,13 @@ def blocks_activity(args):
         device = Device(device_id=args.twinkly_device_id)
         device.start_monitor()
 
+        trainer = BlocksTrainer()
+        trainer.start()
+
         run_blocks(
             device=device,
             inputs_sub=inputs_sub,
+            trainer=trainer,
         )
     finally:
         # Clean up threads
@@ -71,6 +75,8 @@ def blocks_activity(args):
             inputs_sub.stop()
         if device is not None:
             device.stop_monitor()
+        if trainer is not None:
+            trainer.stop()
 
 
 def main():

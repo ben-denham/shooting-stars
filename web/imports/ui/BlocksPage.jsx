@@ -170,7 +170,7 @@ export const BlocksPage = () => {
                  <div key={pixelIdx}
                       className={classNames({
                         [classes.pixel]: true,
-                        [classes.emptyPixel]: (pixel == 0),
+                        [classes.emptyPixel]: ((pixel == 0) || (pixel == 8)),
                       })}
                       style={{
                         background: Color(colours[pixel]).desaturate(0.2).hex(),
