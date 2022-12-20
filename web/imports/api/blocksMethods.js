@@ -38,6 +38,7 @@ export const blocksMethods = {
     check(state, {
       score: Number,
       playfield: [[Match.Integer]],
+      aiMode: Boolean,
     });
 
     if (token != Meteor.settings.controllerToken) {

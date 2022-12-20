@@ -16,6 +16,7 @@ Meteor.publish('blocksStates', function publishBlocksStates() {
     fields: {
       key: 1,
       playfield: 1,
+      aiMode: 1,
       score: 1,
       highScore: 1,
     }

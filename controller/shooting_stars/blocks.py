@@ -1,3 +1,4 @@
+import dataclasses
 import logging
 from time import sleep, monotonic
 
@@ -37,6 +38,10 @@ COLOURS = {
     MinoType.GARBAGE: (0, 0, 0),
 }
 
+# Number of seconds to wait for a new input before switching to AI mode
+AI_TIMEOUT_SECONDS = 15
+
+
 def get_frame_index(row_i, col_i):
     # The first row in the top, the first col is the left.
     if col_i < MID_COL:
@@ -70,9 +75,10 @@ def render_game(*, device, game):
             frame_i = get_frame_index(row_i, col_i)
             frame[frame_i, RGB] = COLOURS[pixel]
 
+    border_colour = (75, 75, 75) if game.ai_mode else (127, 127, 127)
     for col_i in range(COLS):
-        frame[get_frame_index(0, col_i), RGB] = (127, 127, 127)
-        frame[get_frame_index(ROWS - 1, col_i), RGB] = (127, 127, 127)
+        frame[get_frame_index(0, col_i), RGB] = border_colour
+        frame[get_frame_index(ROWS - 1, col_i), RGB] = border_colour
 
     # Points for orientation.
     # frame[0, RGB] = (255, 0, 0)
@@ -83,18 +89,70 @@ def render_game(*, device, game):
     device.set_frame_array(frame)
 
 
+class TrainableBlocksGame(tetris.BaseGame):
+
+    @classmethod
+    def new_game(cls):
+        return cls(board_size=(GAME_ROWS, COLS))
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.ai_mode = False
+
+    def _lock_piece(self) -> None:
+        """
+        Extend the original _lock_piece() that is called whenever a piece is "placed".
+        """
+        assert self.delta
+        piece = self.piece
+        for x in range(piece.x + 1, self.board.shape[0]):
+            if self.rs.overlaps(dataclasses.replace(piece, x=x)):
+                break
+
+            piece.x = x
+            self.delta.x += 1
+
+        for x, y in piece.minos:
+            self.board[x + piece.x, y + piece.y] = piece.type
+
+        # If all tiles are out of view (half of the internal size), it's a lock-out
+        for x, y in piece.minos:
+            if self.piece.x + x > self.height:
+                break
+        else:
+            self._lose()
+
+        for i, row in enumerate(self.board):
+            if all(row):
+                self.board[0] = 0
+                self.board[1 : i + 1] = self.board[:i]
+                self.delta.clears.append(i)
+
+        self.piece = self.rs.spawn(self.queue.pop())
+
+        # If the new piece overlaps, it's a block-out
+        if self.rs.overlaps(self.piece):
+            self._lose()
+
+        self.hold_lock = False
+
+
 def run_blocks(*, device, inputs_sub):
     """Render frames in a continuous loop, raising device errors """
     last_input_timestamp = 0
     next_time = monotonic()
+    last_input_time = monotonic()
+    web_updates_enabled = True
     while True:
-        game = tetris.BaseGame(board_size=(GAME_ROWS, COLS))
+        game = TrainableBlocksGame.new_game()
 
         while True:
             next_time = next_time + FRAME_DELAY_SECONDS
             sleep(max(0, next_time - monotonic()))
-            game.tick()
 
+            frame_start_time = monotonic()
+
+            # Handle inputs
             latest_input_timestamp = last_input_timestamp
             if inputs_sub.state:
                 game_inputs = list(inputs_sub.state.values())[0]['inputs']
@@ -102,7 +160,13 @@ def run_blocks(*, device, inputs_sub):
                     if game_input['timestamp'] <= last_input_timestamp:
                         continue
 
-                    if game_input['type'] == 'left':
+                    last_input_time = monotonic()
+                    web_updates_enabled = True
+                    if game.ai_mode:
+                        # If coming out of ai mode, start a new game,
+                        # and ignore the first input.
+                        game = TrainableBlocksGame.new_game()
+                    elif game_input['type'] == 'left':
                         game.push(Move.left())
                     elif game_input['type'] == 'right':
                         game.push(Move.right())
@@ -114,8 +178,13 @@ def run_blocks(*, device, inputs_sub):
                     latest_input_timestamp = max(latest_input_timestamp, game_input['timestamp'])
             last_input_timestamp = latest_input_timestamp
 
-            frame_start_time = monotonic()
+            # Update game state
+            if (monotonic() - last_input_time) > AI_TIMEOUT_SECONDS:
+                game.ai_mode = True
 
+            game.tick()
+
+            # Send game to device and inputs_sub
             try:
                 render_game(
                     device=device,
@@ -124,13 +193,17 @@ def run_blocks(*, device, inputs_sub):
             except DeviceDisconnected:
                 logging.info('Device disconnected')
 
-            try:
-                inputs_sub.call('blocks.updateState', [inputs_sub.token, {
-                    'score': game.score,
-                    'playfield': game.playfield.tolist(),
-                }])
-            except Exception as ex:
-                logging.info(f'updateState failed: {ex}')
+            if web_updates_enabled:
+                try:
+                    inputs_sub.call('blocks.updateState', [inputs_sub.token, {
+                        'score': game.score,
+                        'playfield': game.playfield.tolist(),
+                        'aiMode': game.ai_mode,
+                    }])
+                    if game.ai_mode:
+                        web_updates_enabled = False
+                except Exception as ex:
+                    logging.info(f'updateState failed: {ex}')
 
             logging.info(f'Frame render time: {monotonic() - frame_start_time}')
 

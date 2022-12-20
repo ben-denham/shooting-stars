@@ -83,6 +83,17 @@ const useStyles = createUseStyles({
     fontFamily: 'DejaVu Sans Mono, monospace',
     fontSize: '16px',
   },
+  aiModeMessage: {
+    fontFamily: 'Courgette',
+    fontSize: '24px',
+    position: 'absolute',
+    top: '35%',
+    width: '100%',
+  },
+  aiModeMessagePara: {
+    margin: 0,
+    padding: '1em',
+  },
 });
 
 export const BlocksPage = () => {
@@ -147,12 +158,14 @@ export const BlocksPage = () => {
        <>
          <div className={classes.gameWrapper}>
            <div className={classes.scores}>
-             <div>Score: {formatScore(state.score)}</div>
+             {!state.aiMode &&
+              <div>Score: {formatScore(state.score)}</div>}
              <div style={{flex: 1, minWidth: '2vh'}}></div>
              <div>High score: {formatScore(state.highScore)}</div>
            </div>
            <div className={classes.playfield}>
-             <div className={classes.pixelsWrapper}>
+             <div className={classes.pixelsWrapper}
+                  style={{visibility: state.aiMode ? 'hidden' : 'visible'}}>
                {state.playfield.flat().map((pixel, pixelIdx) =>
                  <div key={pixelIdx}
                       className={classNames({
@@ -165,8 +178,15 @@ export const BlocksPage = () => {
                       }}>
                  </div>
                )}
-           </div>
-           <Snowfall
+             </div>
+             {state.aiMode &&
+              <div className={classes.aiModeMessage}>
+                <p className={classes.aiModeMessagePara}>
+                  Running in auto-play mode, make any move to start a new game!
+                </p>
+              </div>
+             }
+             <Snowfall
              speed={[0.7, 1.0]}
                wind={[-0.2, 0.5]}
                radius={[0.5, 1.0]}

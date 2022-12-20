@@ -31,6 +31,7 @@ class Device:
 
     def __init__(self, *, device_id):
         self.device_id = device_id
+        self.monitor_stopped = False
         self.connected = False
         self.control = None
 
