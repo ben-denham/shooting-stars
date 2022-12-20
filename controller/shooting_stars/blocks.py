@@ -1,3 +1,4 @@
+import dataclasses
 import logging
 from queue import SimpleQueue
 from threading import Thread, Lock
@@ -150,7 +151,7 @@ class TrainableBlocksGame(tetris.BaseGame):
     def _lock_piece(self) -> None:
         # Train the AI when a user places a piece
         if not self.ai_mode:
-            self.trainer.train_queue.put((self.board.copy(), self.piece))
+            self.trainer.train_queue.put((self.board.copy(), dataclasses.replace(self.piece)))
         self.trainer.set_move(None)
         return super()._lock_piece()
 
@@ -201,33 +202,35 @@ def run_blocks(*, device, inputs_sub, trainer):
             if (monotonic() - last_input_time) > AI_TIMEOUT_SECONDS:
                 game.ai_mode = True
 
-            if game.ai_mode and trainer.move is not None and ((monotonic() - last_ai_time) > AI_MOVE_WAIT_SECONDS):
-                last_ai_time = monotonic()
-                # Move towards the chosen move, one step at a time.
-                target_y, target_r = trainer.move
-                if game.piece.r != target_r:
-                    game.rotate()
-                elif game.piece.y > target_y:
-                    game.left()
-                elif game.piece.y < target_y:
-                    game.right()
-                else:
-                    game.hard_drop()
+            # Only run the game if the device is connected or someone is playing
+            if device.connected or not game.ai_mode:
+                if game.ai_mode and trainer.move is not None and ((monotonic() - last_ai_time) > AI_MOVE_WAIT_SECONDS):
+                    last_ai_time = monotonic()
+                    # Move towards the chosen move, one step at a time.
+                    target_y, target_r = trainer.move
+                    if game.piece.r != target_r:
+                        game.rotate()
+                    elif game.piece.y > target_y:
+                        game.left()
+                    elif game.piece.y < target_y:
+                        game.right()
+                    else:
+                        game.hard_drop()
 
-            game.tick()
+                game.tick()
 
-            if game.ai_mode and trainer.move is None:
-                # Start choosing the next move
-                trainer.test_queue.put((game.board.copy(), game.piece))
+                if game.ai_mode and trainer.move is None:
+                    # Start choosing the next move
+                    trainer.test_queue.put((game.board.copy(), dataclasses.replace(game.piece)))
 
-            # Send game to device and inputs_sub
-            try:
-                render_game(
-                    device=device,
-                    game=game,
-                )
-            except DeviceDisconnected:
-                logging.info('Device disconnected')
+                # Send game to device and inputs_sub
+                try:
+                    render_game(
+                        device=device,
+                        game=game,
+                    )
+                except DeviceDisconnected:
+                    logging.info('Device disconnected')
 
             if web_updates_enabled:
                 try:
