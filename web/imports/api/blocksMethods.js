@@ -21,14 +21,14 @@ export const blocksMethods = {
 
     const selector = {key: 'inputs'};
     const oldRecord = BlocksInputsCollection.findOne(selector);
-    // Keep any inputs younger than 5 seconds.
-    const nowMs = Date.now();
-    const keptInputs = oldRecord ? oldRecord.inputs.filter(input => input.timestamp >= nowMs - 5000) : [];
+    const oldInputs = oldRecord ? oldRecord.inputs : [];
+    // Keep only the 10 most recent inputs
+    const keptInputs = oldInputs.sort((inputA, inputB) => inputA.timestamp - inputB.timestamp).slice(-10);
 
     BlocksInputsCollection.upsert(
       selector,
       {
-        inputs: [...keptInputs, {type: inputType, timestamp: nowMs}],
+        inputs: [...keptInputs, {type: inputType, timestamp: Date.now()}],
         ...selector,
       }
     );
