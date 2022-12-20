@@ -5,7 +5,7 @@ from itertools import cycle
 from operator import itemgetter
 
 from .utils import hsv_to_rgb, hue_to_rgb
-from .device import FRAME_DTYPE
+from .device import FRAME_DTYPE, DeviceDisconnected
 
 FRAMES_PER_SECOND = 20
 FRAME_DELAY_SECONDS = 1 / FRAMES_PER_SECOND
@@ -139,12 +139,15 @@ def run_animation(*, device, lights, animation_state):
         sleep(max(0, next_time - monotonic()))
 
         frame_start_time = monotonic()
-        render_frame(
-            device=device,
-            lights=lights,
-            animation_state=animation_state,
-            frame_idx=frame_idx,
-        )
+        try:
+            render_frame(
+                device=device,
+                lights=lights,
+                animation_state=animation_state,
+                frame_idx=frame_idx,
+            )
+        except DeviceDisconnected:
+            logging.info(f'Device disconnected')
         logging.info(f'Frame render time: {monotonic() - frame_start_time}')
 
         # Prevent frame_idx from reaching infinity

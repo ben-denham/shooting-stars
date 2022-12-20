@@ -23,64 +23,62 @@ def pipe_with_timeout(ctx):
 xled.discover.pipe = pipe_with_timeout
 
 
-class DeviceTimeout(Exception):
+class DeviceDisconnected(Exception):
     pass
 
 
 class Device:
 
-    def __init__(self, *, ip_address, hw_address):
-        self.control = xled.ControlInterface(ip_address, hw_address)
-        self.control.set_mode('rt')
-        self.connected = True
-        self.monitor_thread = None
-        self.monitor_stopped = False
-
-    @classmethod
-    def discover(cls, device_id):
-        try:
-            xled_device = xled.discover.discover(find_id=device_id, timeout=TIMEOUT_SECONDS)
-        except zmq.error.Again as ex:
-            if 'Resource temporarily unavailable' in str(ex):
-                raise DeviceTimeout()
-            raise ex
-        return cls(
-            ip_address=xled_device.ip_address,
-            hw_address=xled_device.hw_address,
-        )
+    def __init__(self, *, device_id):
+        self.device_id = device_id
+        self.connected = False
+        self.control = None
 
     def start_monitor(self):
         """Run the subscription in a new thread"""
-        if self.monitor_thread is not None:
-            return
-
-        self.monitor_stopped = False
-        self.monitor_thread = Thread(target=self.run_monitor)
-        self.monitor_thread.start()
+        monitor_thread = Thread(target=self.run_monitor)
+        monitor_thread.start()
 
     def stop_monitor(self):
         self.monitor_stopped = True
-        self.monitor_thread = None
+
+    def reconnect(self):
+        # Clear anything that may exist from a previous connection
+        try:
+            self.control._udpclient.close()
+        except:
+            pass
+
+        xled_device = xled.discover.discover(find_id=device_id, timeout=TIMEOUT_SECONDS)
+        self.control = xled.ControlInterface(xled_device.ip_address, xled_device.hw_address)
+        self.control.set_mode('rt')
 
     def run_monitor(self, interval_seconds=5):
-        while not self.monitor_stopped and self.connected:
+        while not self.monitor_stopped:
             sleep(interval_seconds)
-            try:
-                # Same as self.control.check_status() but with timeout
-                status_url = urljoin(self.control.base_url, 'status')
-                response = self.control.session.get(status_url, timeout=TIMEOUT_SECONDS)
-                status = ApplicationResponse(response)
-                if status['code'] != 1000:
+            if self.connected:
+                try:
+                    # Same as self.control.check_status() but with timeout
+                    status_url = urljoin(self.control.base_url, 'status')
+                    response = self.control.session.get(status_url, timeout=TIMEOUT_SECONDS)
+                    status = ApplicationResponse(response)
+                    if status['code'] != 1000:
+                        self.connected = False
+                except:
+                    logging.exception('Device check failed')
                     self.connected = False
-            except:
-                logging.exception('Device check failed')
-                self.connected = False
+            else:
+                try:
+                    self.reconnect()
+                    self.connected = True
+                except:
+                    pass
 
     def set_frame_array(self, array: np.ndarray):
         """array should have a row for each LED, and a column for each RGBW
         component, with integer values."""
         if not self.connected:
-            raise RuntimeError('Device disconnected')
+            raise DeviceDisconnected()
 
         if array.dtype != FRAME_DTYPE:
             raise ValueError('Invalid frame array')

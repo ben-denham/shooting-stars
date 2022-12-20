@@ -3,7 +3,7 @@ import logging
 from argparse import ArgumentParser
 
 from .subscription import Subscription
-from .device import Device, DeviceTimeout
+from .device import Device
 from .animation import run_animation, AnimationState
 from .blocks import run_blocks
 
@@ -29,21 +29,16 @@ def lights_activity(args):
             token=args.meteor_token,
         )
         lights_sub.start()
+
+        device = Device(device_id=args.twinkly_device_id)
+        device.start_monitor()
+
         animation_state = AnimationState()
-        logging.info('Connecting to device...')
-        try:
-            device = Device.discover(args.twinkly_device_id)
-        except DeviceTimeout:
-            # Don't verbosely log for known errors
-            logging.warning('Device connection timed out...')
-        if device is not None:
-            logging.info('Connected to device...')
-            device.start_monitor()
-            run_animation(
-                device=device,
-                lights=lights_sub.state,
-                animation_state=animation_state,
-            )
+        run_animation(
+            device=device,
+            lights=lights_sub.state,
+            animation_state=animation_state,
+        )
     finally:
         # Clean up threads
         if lights_sub is not None:
@@ -62,19 +57,14 @@ def blocks_activity(args):
             token=args.meteor_token,
         )
         inputs_sub.start()
-        logging.info('Connecting to device...')
-        try:
-            device = Device.discover(args.twinkly_device_id)
-        except DeviceTimeout:
-            # Don't verbosely log for known errors
-            logging.warning('Device connection timed out...')
-        if device is not None:
-            logging.info('Connected to device...')
-            device.start_monitor()
-            run_blocks(
-                device=device,
-                inputs_sub=inputs_sub,
-            )
+
+        device = Device(device_id=args.twinkly_device_id)
+        device.start_monitor()
+
+        run_blocks(
+            device=device,
+            inputs_sub=inputs_sub,
+        )
     finally:
         # Clean up threads
         if inputs_sub is not None:

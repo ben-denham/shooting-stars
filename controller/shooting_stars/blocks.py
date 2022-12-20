@@ -5,7 +5,7 @@ import numpy as np
 import tetris
 from tetris import MinoType, Move
 
-from .device import FRAME_DTYPE
+from .device import FRAME_DTYPE, DeviceDisconnected
 
 FRAMES_PER_SECOND = 10
 FRAME_DELAY_SECONDS = 1 / FRAMES_PER_SECOND
@@ -116,10 +116,13 @@ def run_blocks(*, device, inputs_sub):
 
             frame_start_time = monotonic()
 
-            render_game(
-                device=device,
-                game=game,
-            )
+            try:
+                render_game(
+                    device=device,
+                    game=game,
+                )
+            except DeviceDisconnected:
+                logging.info('Device disconnected')
 
             try:
                 inputs_sub.call('blocks.updateState', [inputs_sub.token, {
