@@ -122,7 +122,11 @@ class BlocksTrainer:
         self.stopped = False
         self.move = None
         self.move_lock = Lock()
+        self.reset_flag = False
+        self.reset_model()
 
+    def reset_model(self):
+        logging.info('Model reset')
         self.model = river.naive_bayes.GaussianNB()
 
     def start(self):
@@ -135,6 +139,12 @@ class BlocksTrainer:
 
     def run(self):
         while not self.stopped:
+            if self.reset_flag:
+                try:
+                    self.reset_model()
+                    self.reset_flag = False
+                except:
+                    logging.exception('Reset failed')
             try:
                 self.train(self.train_queue.get_nowait())
             except Empty:
@@ -303,9 +313,10 @@ def run_blocks(*, device, inputs_sub, trainer):
                     last_input_time = monotonic()
                     web_updates_enabled = True
                     if game.ai_mode:
-                        # If coming out of ai mode, start a new game,
-                        # and ignore the first input.
+                        # If coming out of ai mode, start a new game
+                        # and model, and ignore the first input.
                         game = TrainableBlocksGame.new_game(trainer)
+                        trainer.reset_model()
                     elif game_input['type'] == 'left':
                         game.left()
                     elif game_input['type'] == 'right':

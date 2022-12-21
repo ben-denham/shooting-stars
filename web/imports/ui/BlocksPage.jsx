@@ -188,7 +188,7 @@ export const BlocksPage = () => {
              {aiMode &&
               <div className={classes.aiModeMessage}>
                 <p className={classes.aiModeMessagePara}>
-                  Running in AI mode, make any move to play a new game and teach the AI!
+                  Running AI trained by last user session, make any move to start a new game and teach the AI!
                 </p>
               </div>
              }
