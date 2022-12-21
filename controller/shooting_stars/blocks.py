@@ -1,3 +1,7 @@
+"""
+This code could be a lot cleaner, but I was running out of time!
+"""
+
 from datetime import datetime, timezone
 import dataclasses
 import logging
