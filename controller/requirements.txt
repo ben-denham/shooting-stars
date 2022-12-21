@@ -1,7 +1,8 @@
-numpy==1.21.4
+numpy==1.24.0
 websocket-client==1.2.1
 # This recent version of xled is needed to support connections
 # to multiple devices from the same machine
 git+https://github.com/scrool/xled@91da7b1f#egg=xled
 jurigged==0.4.1
 tetris==0.6.1a0
+river==0.14.0

@@ -111,6 +111,12 @@ export const BlocksPage = () => {
     return { state };
   });
 
+  const now = (new Date()).getTime();
+  const aiMode = (state ? (
+    // Assume aiMode if the state is over 10000 milliseconds old
+    state.aiMode || ((now - state.timestamp) > 10000)
+  ) : false);
+
   const sendInput = (input) => {
     Meteor.call('blocks.sendInput', input);
   };
@@ -158,14 +164,14 @@ export const BlocksPage = () => {
        <>
          <div className={classes.gameWrapper}>
            <div className={classes.scores}>
-             {!state.aiMode &&
+             {!aiMode &&
               <div>Score: {formatScore(state.score)}</div>}
              <div style={{flex: 1, minWidth: '2vh'}}></div>
              <div>High score: {formatScore(state.highScore)}</div>
            </div>
            <div className={classes.playfield}>
              <div className={classes.pixelsWrapper}
-                  style={{visibility: state.aiMode ? 'hidden' : 'visible'}}>
+                  style={{visibility: aiMode ? 'hidden' : 'visible'}}>
                {state.playfield.flat().map((pixel, pixelIdx) =>
                  <div key={pixelIdx}
                       className={classNames({
@@ -179,10 +185,10 @@ export const BlocksPage = () => {
                  </div>
                )}
              </div>
-             {state.aiMode &&
+             {aiMode &&
               <div className={classes.aiModeMessage}>
                 <p className={classes.aiModeMessagePara}>
-                  Running in auto-play mode, make any move to start a new game!
+                  Running in AI mode, make any move to play a new game and teach the AI!
                 </p>
               </div>
              }

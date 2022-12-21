@@ -28,7 +28,7 @@ export const blocksMethods = {
     BlocksInputsCollection.upsert(
       selector,
       {
-        inputs: [...keptInputs, {type: inputType, timestamp: Date.now()}],
+        inputs: [...keptInputs, {type: inputType, timestamp: (new Date()).getTime()}],
         ...selector,
       }
     );
@@ -52,6 +52,7 @@ export const blocksMethods = {
       {
         ...state,
         highScore: Math.max((oldRecord?.highScore || 0), (state.score || 0)),
+        timestamp: (new Date()).getTime(),
         ...selector,
       }
     );

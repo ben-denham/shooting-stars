@@ -1,14 +1,22 @@
+from datetime import datetime, timezone
 import dataclasses
 import logging
-from queue import SimpleQueue
+from queue import SimpleQueue, Empty
 from threading import Thread, Lock
 from time import sleep, monotonic
+from typing import Iterator
 
 import numpy as np
+# import river.tree
+import river.naive_bayes
 import tetris
-from tetris import MinoType
+from tetris import MinoType, Piece
+from tetris.engine import RotationSystem
+from tetris.types import Board, Minos
 
 from .device import FRAME_DTYPE, DeviceDisconnected
+
+DEBUG = False
 
 FRAMES_PER_SECOND = 10
 FRAME_DELAY_SECONDS = 1 / FRAMES_PER_SECOND
@@ -93,6 +101,19 @@ def render_game(*, device, game):
     device.set_frame_array(frame)
 
 
+@dataclasses.dataclass(frozen=True, kw_only=True)
+class GameState:
+    rs: RotationSystem
+    board: Board
+    piece: Piece
+
+
+@dataclasses.dataclass(frozen=True, kw_only=True)
+class Move:
+    y: int
+    r: int
+
+
 class BlocksTrainer:
 
     def __init__(self):
@@ -101,6 +122,8 @@ class BlocksTrainer:
         self.stopped = False
         self.move = None
         self.move_lock = Lock()
+
+        self.model = river.naive_bayes.GaussianNB()
 
     def start(self):
         """Run the trainer in a new thread"""
@@ -113,23 +136,109 @@ class BlocksTrainer:
     def run(self):
         while not self.stopped:
             try:
-                self.train(*self.train_queue.get_nowait())
-            except:
+                self.train(self.train_queue.get_nowait())
+            except Empty:
                 pass
+            except:
+                logging.exception('Train failed')
             try:
-                self.test(*self.test_queue.get_nowait())
-            except:
+                self.test(self.test_queue.get_nowait())
+            except Empty:
                 pass
+            except:
+                logging.exception('Test failed')
 
-    def train(self, board, piece):
-        # TODO
-        pass
+    def get_possible_moves(self, state: GameState) -> Iterator[Move]:
+        board_min_y = 0
+        board_max_y = state.board.shape[1] - 1
+        for r in range(4):
+            minos = state.rs.shapes[state.piece.type][r]
+            min_y = board_min_y - min([y for _, y in minos])
+            max_y = board_max_y - max([y for _, y in minos])
+            for y in range(min_y, max_y + 1):
+                yield Move(y=y, r=r)
 
-    def test(self, board, piece):
-        # TODO
-        y = 0
-        r = 1
-        self.set_move((y, r))
+    def overlaps(self, *, board: Board, minos: Minos, x: int, y: int) -> bool:
+        for mx, my in minos:
+            # No need to check y-axis currently because we limit the suggested y values
+            if (x + mx) not in range(board.shape[0]):
+                return True
+            if board[x + mx, y + my] != 0:
+                return True
+        return False
+
+    def get_board_features(self, board: Board) -> dict[str, float]:
+        max_height = 0
+        hole_count = 0
+
+        # Convert piece numbers to Boolean
+        for col in (board > 0).T:
+            # Skip empty columns
+            if not any(col):
+                continue
+
+            # First non-zero index in column
+            highest_filled_idx = np.argmax(col)
+            # Indexes start at the top, so height is (board height - index)
+            height = board.shape[0] - highest_filled_idx
+            if height > max_height:
+                max_height = height
+            # Count zero values after highest_filled_index
+            hole_count += np.sum(~col[highest_filled_idx:])
+
+        return {
+            'max_height': max_height,
+            'hole_count': hole_count,
+        }
+
+    def get_move_features(self, state: GameState, move: Move,
+                          pre_features: dict[str, float]) -> dict[str, float]:
+        """
+        Features inspired by: https://levelup.gitconnected.com/tetris-ai-in-python-bd194d6326ae
+        """
+        y = move.y
+        minos = state.rs.shapes[state.piece.type][move.r]
+        # Start at the top of the board to avoid initial check for illegal moves.
+        start_x = 0 - min([x for x, _ in minos])
+        # Find the x after dropping
+        x = start_x
+        for possible_x in range(start_x + 1, state.board.shape[0]):
+            if self.overlaps(board=state.board, minos=minos, x=possible_x, y=y):
+                break
+            x = possible_x
+
+        post_drop_board = state.board.copy()
+        for mx, my in minos:
+            post_drop_board[x + mx, y + my] = state.piece.type
+
+        post_features = self.get_board_features(post_drop_board)
+        return {
+            'height_diff': post_features['max_height'] - pre_features['max_height'],
+            'hole_diff': post_features['hole_count'] - pre_features['hole_count'],
+            # Count rows that are completely full.
+            'lines_cleared': np.sum(np.all(post_drop_board, axis=1)),
+        }
+
+    def train(self, state: GameState) -> None:
+        pre_features = self.get_board_features(state.board)
+        for move in self.get_possible_moves(state):
+            features = self.get_move_features(state, move, pre_features)
+            chosen = (move.y == state.piece.y) and (move.r == state.piece.r)
+            label = ('CHOSEN' if chosen else 'NOT_CHOSEN')
+            logging.info(f'TRAIN: {features}, {label}')
+            self.model.learn_one(x=features, y=label)
+
+    def test(self, state: GameState) -> Move:
+        pre_features = self.get_board_features(state.board)
+        moves = list(self.get_possible_moves(state))
+        scores = []
+        for move in moves:
+            features = self.get_move_features(state, move, pre_features)
+            prediction = self.model.predict_proba_one(features)
+            score = prediction.get('CHOSEN', 0)
+            scores.append(score)
+        logging.info(f'TEST: {scores}')
+        self.set_move(moves[np.argmax(scores)])
 
     def set_move(self, move):
         with self.move_lock:
@@ -151,14 +260,23 @@ class TrainableBlocksGame(tetris.BaseGame):
     def _lock_piece(self) -> None:
         # Train the AI when a user places a piece
         if not self.ai_mode:
-            self.trainer.train_queue.put((self.board.copy(), dataclasses.replace(self.piece)))
+            self.trainer.train_queue.put(GameState(
+                rs=self.rs,
+                board=self.board.copy(),
+                piece=dataclasses.replace(self.piece),
+            ))
         self.trainer.set_move(None)
         return super()._lock_piece()
 
 
+def get_inputs(inputs_sub):
+    return list(inputs_sub.state.values())[0]['inputs']
+
+
 def run_blocks(*, device, inputs_sub, trainer):
     """Render frames in a continuous loop, raising device errors """
-    last_input_timestamp = 0
+    # Ignore any initial inputs
+    last_input_timestamp = None
     next_time = monotonic()
     last_input_time = monotonic()
     last_ai_time = monotonic()
@@ -173,10 +291,12 @@ def run_blocks(*, device, inputs_sub, trainer):
             frame_start_time = monotonic()
 
             # Handle inputs
-            latest_input_timestamp = last_input_timestamp
             if inputs_sub.state:
-                game_inputs = list(inputs_sub.state.values())[0]['inputs']
-                for game_input in game_inputs:
+                if last_input_timestamp is None:
+                    # Ignore the first inputs on start - as they are probably stale
+                    last_input_timestamp = max(game_input['timestamp'] for game_input in get_inputs(inputs_sub))
+                latest_input_timestamp = last_input_timestamp
+                for game_input in get_inputs(inputs_sub):
                     if game_input['timestamp'] <= last_input_timestamp:
                         continue
 
@@ -195,24 +315,24 @@ def run_blocks(*, device, inputs_sub, trainer):
                     elif game_input['type'] == 'drop':
                         game.hard_drop()
 
-                    latest_input_timestamp = max(latest_input_timestamp, game_input['timestamp'])
-            last_input_timestamp = latest_input_timestamp
+                latest_input_timestamp = max(latest_input_timestamp, game_input['timestamp'])
+                last_input_timestamp = latest_input_timestamp
 
             # Update game state
             if (monotonic() - last_input_time) > AI_TIMEOUT_SECONDS:
                 game.ai_mode = True
 
             # Only run the game if the device is connected or someone is playing
-            if device.connected or not game.ai_mode:
+            if device.connected or (not game.ai_mode) or DEBUG:
                 if game.ai_mode and trainer.move is not None and ((monotonic() - last_ai_time) > AI_MOVE_WAIT_SECONDS):
                     last_ai_time = monotonic()
                     # Move towards the chosen move, one step at a time.
-                    target_y, target_r = trainer.move
-                    if game.piece.r != target_r:
+                    move = trainer.move
+                    if game.piece.r != move.r:
                         game.rotate()
-                    elif game.piece.y > target_y:
+                    elif game.piece.y > move.y:
                         game.left()
-                    elif game.piece.y < target_y:
+                    elif game.piece.y < move.y:
                         game.right()
                     else:
                         game.hard_drop()
@@ -221,7 +341,11 @@ def run_blocks(*, device, inputs_sub, trainer):
 
                 if game.ai_mode and trainer.move is None:
                     # Start choosing the next move
-                    trainer.test_queue.put((game.board.copy(), dataclasses.replace(game.piece)))
+                    trainer.test_queue.put(GameState(
+                        rs=game.rs,
+                        board=game.board.copy(),
+                        piece=dataclasses.replace(game.piece),
+                    ))
 
                 # Send game to device and inputs_sub
                 try:
@@ -232,7 +356,7 @@ def run_blocks(*, device, inputs_sub, trainer):
                 except DeviceDisconnected:
                     logging.info('Device disconnected')
 
-            if web_updates_enabled:
+            if web_updates_enabled or DEBUG:
                 try:
                     inputs_sub.call('blocks.updateState', [inputs_sub.token, {
                         'score': game.score,
