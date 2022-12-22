@@ -50,7 +50,7 @@ class Device:
         except:
             pass
 
-        xled_device = xled.discover.discover(find_id=device_id, timeout=TIMEOUT_SECONDS)
+        xled_device = xled.discover.discover(find_id=self.device_id, timeout=TIMEOUT_SECONDS)
         self.control = xled.ControlInterface(xled_device.ip_address, xled_device.hw_address)
         self.control.set_mode('rt')
 
@@ -73,7 +73,7 @@ class Device:
                     self.reconnect()
                     self.connected = True
                 except:
-                    pass
+                    logging.exception('Device check failed')
 
     def set_frame_array(self, array: np.ndarray):
         """array should have a row for each LED, and a column for each RGBW
