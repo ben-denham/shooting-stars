@@ -9,6 +9,8 @@ import Color from 'color';
 import { BlocksStatesCollection } from '/imports/db/BlocksStatesCollection';
 import { LoadingSpinner } from './LoadingSpinner';
 
+const DEBUG = false;
+
 const colours = {
   // Empty
   0: '#030303',
@@ -112,7 +114,7 @@ export const BlocksPage = () => {
   });
 
   const now = (new Date()).getTime();
-  const aiMode = (state ? (
+  const aiMode = (!DEBUG) && (state ? (
     // Assume aiMode if the state is over 10000 milliseconds old
     state.aiMode || ((now - state.timestamp) > 10000)
   ) : false);
@@ -160,7 +162,7 @@ export const BlocksPage = () => {
   return (
     <div {...swipeHandlers} className={classes.page}>
       {isLoading && <LoadingSpinner className={classes.loading}></LoadingSpinner>}
-      {!isLoading &&
+      {!isLoading && state &&
        <>
          <div className={classes.gameWrapper}>
            <div className={classes.scores}>
