@@ -1,4 +1,4 @@
-FROM python:3.10-bullseye
+FROM python:3.9-bullseye
 
 RUN groupadd --gid 1000 coder
 RUN useradd --uid 1000 --gid coder --shell /bin/bash --create-home coder

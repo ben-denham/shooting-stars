@@ -100,7 +100,7 @@ def render_game(*, device, game):
     device.set_frame_array(frame)
 
 
-@dataclasses.dataclass(frozen=True, kw_only=True)
+@dataclasses.dataclass(frozen=True)
 class GameState:
     """Represents the current state of a blocks game."""
     rs: RotationSystem
@@ -108,7 +108,7 @@ class GameState:
     piece: Piece
 
 
-@dataclasses.dataclass(frozen=True, kw_only=True)
+@dataclasses.dataclass(frozen=True)
 class Move:
     """Represents a possible move of a piece to a given y/horizontal
     position and rotation."""
