@@ -73,7 +73,7 @@ class Device:
                     self.reconnect()
                     self.connected = True
                 except:
-                    logging.exception('Device check failed')
+                    logging.warning('Device connect failed')
 
     def set_frame_array(self, array: np.ndarray):
         """array should have a row for each LED, and a column for each RGBW
