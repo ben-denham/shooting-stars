@@ -6,9 +6,8 @@ services:
       - 2500:2500
     volumes:
       - ./web:/home/node/src
-      - ./meteor-settings.json:/etc/meteor-settings.json
     command: ['/home/node/.meteor/meteor', 'run', '--port', '2500',
-              '--settings', '/etc/meteor-settings.json']
+              '--settings', 'meteor-settings.json']
   controller-lights:
     build: controller
     command: ['python', '-m', 'jurigged', '-m', 'shooting_stars', 'ws://localhost:2500',

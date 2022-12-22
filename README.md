@@ -12,7 +12,7 @@ Python.
    STRINGS_TWINKLY_DEVICE_ID=<device-id>
    METEOR_TOKEN=<securely-generated-string>
    ```
-3. Create a `meteor-settings.json` file in this directory with the following format:
+3. Create a `web/meteor-settings.json` file in this directory with the following format:
    ```
    {
      "controllerToken": "<securely-generated-string>"

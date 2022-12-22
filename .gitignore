@@ -1,2 +1,2 @@
 .env
-meteor-settings.json
+web/meteor-settings.json
