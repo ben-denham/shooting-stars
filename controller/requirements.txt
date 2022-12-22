@@ -6,3 +6,5 @@ git+https://github.com/scrool/xled@91da7b1f#egg=xled
 jurigged==0.4.1
 tetris==0.6.1a0
 river==0.14.0
+# Pin version that has a piwheel.org wheel
+scipy==1.8.1
