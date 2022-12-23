@@ -1,4 +1,5 @@
 from io import BytesIO
+import sys
 from time import sleep
 from threading import Thread
 import logging
@@ -10,6 +11,9 @@ from xled.response import ApplicationResponse
 
 FRAME_DTYPE = np.ubyte
 TIMEOUT_SECONDS = 10
+
+
+MAX_RETRIES = 12
 
 
 orig_pipe = xled.discover.pipe
@@ -34,6 +38,7 @@ class Device:
         self.monitor_stopped = False
         self.connected = False
         self.control = None
+        self.failed_connections = 0
 
     def start_monitor(self):
         """Run the subscription in a new thread"""
@@ -73,7 +78,11 @@ class Device:
                     self.reconnect()
                     self.connected = True
                 except:
+                    self.failed_connections += 1
                     logging.warning('Device connect failed')
+                    # Avoid memory leaks by restarting after a number of retries.
+                    if self.failed_connections >= MAX_RETRIES:
+                        sys.exit()
 
     def set_frame_array(self, array: np.ndarray):
         """array should have a row for each LED, and a column for each RGBW
