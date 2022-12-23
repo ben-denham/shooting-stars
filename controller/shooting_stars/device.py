@@ -10,10 +10,10 @@ import zmq
 from xled.response import ApplicationResponse
 
 FRAME_DTYPE = np.ubyte
-TIMEOUT_SECONDS = 10
+TIMEOUT_SECONDS = 20
 
 
-MAX_RETRIES = 12
+MAX_RETRIES = 30
 
 
 orig_pipe = xled.discover.pipe
