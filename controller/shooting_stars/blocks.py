@@ -86,7 +86,7 @@ def render_game(*, device, game):
             frame_i = get_frame_index(row_i, col_i)
             frame[frame_i, RGB] = COLOURS[pixel]
 
-    border_colour = (25, 0, 0) if game.ai_mode else (127, 127, 127)
+    border_colour = (127, 127, 127) if game.ai_mode else (127, 25, 25)
     for col_i in range(COLS):
         frame[get_frame_index(0, col_i), RGB] = border_colour
         frame[get_frame_index(ROWS - 1, col_i), RGB] = border_colour
