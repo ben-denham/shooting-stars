@@ -43,6 +43,7 @@ meteor deploy <subdomain>.au.meteorapp.com --free --mongo --settings meteor-sett
   controller/requirements.txt`
 * Place `controller/shooting-stars-lights.service` and  `controller/shooting-stars-blocks.service` in `/etc/systemd/system/`,
   updating the subdomain name, meteor token, and Twinkly device ID.
+  * Note that any percentages in the token must be escaped by formatting them as double percentages.
 * Start with `sudo systemctl restart shooting-stars-lights` and `sudo systemctl restart shooting-stars-blocks`
 * Start at boot with `sudo systemctl enable shooting-stars-lights` and `sudo systemctl enable shooting-stars-blocks`
 * View logs with `journalctl -fu shooting-stars-lights.service` and `journalctl -fu shooting-stars-blocks.service`
