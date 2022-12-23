@@ -33,12 +33,14 @@ meteor deploy <subdomain>.au.meteorapp.com --free --mongo --settings meteor-sett
 
 ## Controller Deployment
 
-* Install dependencies with `python -m pip install -r
-  controller/requirements.txt`
 * On raspberry-pi, run `sudo apt-get install libatlas-base-dev` for
   numpy support.
 * On raspberry-pi, install a rust compiler in order to build a wheel
   for River: https://linuxhint.com/install-rust-raspberry-pi/
+* On raspberry-pi, install python3.9-dev for building a wheel for
+  arc4: https://linuxhint.com/install-rust-raspberry-pi/
+* Install dependencies with `python -m pip install -r
+  controller/requirements.txt`
 * Place `controller/shooting-stars-lights.service` and  `controller/shooting-stars-blocks.service` in `/etc/systemd/system/`,
   updating the subdomain name, meteor token, and Twinkly device ID.
 * Start with `sudo systemctl restart shooting-stars-lights` and `sudo systemctl restart shooting-stars-blocks`
