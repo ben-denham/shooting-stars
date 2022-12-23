@@ -89,7 +89,7 @@ const useStyles = createUseStyles({
     fontFamily: 'Courgette',
     fontSize: '24px',
     position: 'absolute',
-    top: '35%',
+    top: '15%',
     width: '100%',
   },
   aiModeMessagePara: {
@@ -190,7 +190,7 @@ export const BlocksPage = () => {
              {aiMode &&
               <div className={classes.aiModeMessage}>
                 <p className={classes.aiModeMessagePara}>
-                  Running AI trained by last user session, make any move to start a new game and teach the AI!
+                  Running AI trained by last player, make any move to start a new game and teach the AI!
                 </p>
               </div>
              }
