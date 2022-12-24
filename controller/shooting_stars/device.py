@@ -12,19 +12,21 @@ from xled.response import ApplicationResponse
 FRAME_DTYPE = np.ubyte
 TIMEOUT_SECONDS = 20
 
+# Given we run the discovery in a separate thread, it's fine for it to
+# hang indefinitely waiting for a response from devices instead of
+# timing out - this is beneficial because the timeout leaves some
+# unclosed file handles that would necessitate periodic restarting of
+# the process.
 
-MAX_RETRIES = 30
+# orig_pipe = xled.discover.pipe
 
+# def pipe_with_timeout(ctx):
+#     """Monkey-patch pipe() to include a timeout"""
+#     parent_socket, child_socket = orig_pipe(ctx)
+#     parent_socket.setsockopt(zmq.RCVTIMEO, TIMEOUT_SECONDS * 1000)
+#     return parent_socket, child_socket
 
-orig_pipe = xled.discover.pipe
-
-def pipe_with_timeout(ctx):
-    """Monkey-patch pipe() to include a timeout"""
-    parent_socket, child_socket = orig_pipe(ctx)
-    parent_socket.setsockopt(zmq.RCVTIMEO, TIMEOUT_SECONDS * 1000)
-    return parent_socket, child_socket
-
-xled.discover.pipe = pipe_with_timeout
+# xled.discover.pipe = pipe_with_timeout
 
 
 class DeviceDisconnected(Exception):
@@ -38,7 +40,6 @@ class Device:
         self.monitor_stopped = False
         self.connected = False
         self.control = None
-        self.failed_connections = 0
 
     def start_monitor(self):
         """Run the subscription in a new thread"""
@@ -78,11 +79,7 @@ class Device:
                     self.reconnect()
                     self.connected = True
                 except:
-                    self.failed_connections += 1
-                    logging.warning('Device connect failed')
-                    # Avoid memory leaks by restarting after a number of retries.
-                    if self.failed_connections >= MAX_RETRIES:
-                        sys.exit()
+                    logging.exception('Device connect failed')
 
     def set_frame_array(self, array: np.ndarray):
         """array should have a row for each LED, and a column for each RGBW
