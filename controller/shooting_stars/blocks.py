@@ -10,8 +10,9 @@ import numpy as np
 import river.naive_bayes
 import tetris
 from tetris import MinoType, Piece
+from tetris.board import Board
 from tetris.engine import RotationSystem
-from tetris.types import Board, Minos
+from tetris.types import Minos
 
 from .device import FRAME_DTYPE, DeviceDisconnected
 
@@ -206,7 +207,7 @@ class BlocksTrainer:
         hole_count = 0
 
         # Convert piece numbers to Boolean
-        for col in (board > 0).T:
+        for col in (np.array(board) > 0).T:
             # Skip empty columns
             if not any(col):
                 continue
@@ -421,7 +422,7 @@ def run_blocks(*, device, inputs_sub, trainer):
                 try:
                     inputs_sub.call('blocks.updateState', [inputs_sub.token, {
                         'score': game.score,
-                        'playfield': game.playfield.tolist(),
+                        'playfield': np.array(game.playfield).tolist(),
                         'aiMode': game.ai_mode,
                     }])
                     if game.ai_mode:
