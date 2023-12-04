@@ -5,6 +5,8 @@ import classNames from 'classnames';
 
 import { LightsPage } from './LightsPage';
 import { BlocksPage } from './BlocksPage';
+import { PaintPage } from './PaintPage';
+import { StoryPage } from './StoryPage';
 
 const useStyles = createUseStyles({
   app: {
@@ -17,6 +19,7 @@ const useStyles = createUseStyles({
     flexDirection: 'column',
     alignItems: 'stretch',
     background: '#121212',
+    position: 'relative',
   },
   pageMenu: {
     display: 'flex',
@@ -58,6 +61,8 @@ export const App = () => {
   const pages = {
     blocks: 'Blocks',
     lights: 'Icicles',
+    paint: 'Paint',
+    story: 'Story',
   };
 
   return (
@@ -74,6 +79,8 @@ export const App = () => {
       </div>
       {(selectedPageId == 'lights') && <LightsPage />}
       {(selectedPageId == 'blocks') && <BlocksPage />}
+      {(selectedPageId == 'paint') && <PaintPage />}
+      {(selectedPageId == 'story') && <StoryPage />}
       <div className={classes.links}>
         <a href="https://github.com/ben-denham/shooting-stars">Source Code on GitHub</a>
       </div>

@@ -9,7 +9,8 @@ Python.
 2. Create a `.env` file in this directory with the following format:
    ```
    ICICLES_TWINKLY_DEVICE_ID=<device-id>
-   STRINGS_TWINKLY_DEVICE_ID=<device-id>
+   GRID_TWINKLY_DEVICE_ID=<device-id>
+   CONE_TWINKLY_DEVICE_ID=<device-id>
    METEOR_TOKEN=<securely-generated-string>
    ```
 3. Create a `web/meteor-settings.json` file in this directory with the following format:

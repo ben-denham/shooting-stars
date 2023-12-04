@@ -3,8 +3,10 @@ import { DDPRateLimiter } from 'meteor/ddp-rate-limiter';
 import { LightsCollection, LIGHT_COUNT } from '/imports/db/LightsCollection';
 import { lightsMethods } from '/imports/api/lightsMethods';
 import { blocksMethods } from '/imports/api/blocksMethods';
+import { picturesMethods } from '/imports/api/picturesMethods';
 import '/imports/api/lightsPublications';
 import '/imports/api/blocksPublications';
+import '/imports/api/picturesPublications';
 
 Meteor.startup(() => {
   // Initialise lights.
@@ -29,10 +31,12 @@ DDPRateLimiter.addRule(
         // Methods
         ...Object.keys(lightsMethods),
         ...Object.keys(blocksMethods),
+        ...Object.keys(picturesMethods),
         // Publications
         'lights',
         'blocksStates',
         'blocksInputs',
+        'pictures',
       ].includes(name);
     },
     // Rate limit per connection ID
