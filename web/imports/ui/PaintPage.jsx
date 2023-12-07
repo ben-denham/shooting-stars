@@ -1,10 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import classNames from 'classnames';
 import {createUseStyles} from 'react-jss';
 import { HuePicker, AlphaPicker } from 'react-color';
 import tinycolor from 'tinycolor2';
 
 const candycaneStripeImage = '/images/candycane-stripe.png';
+
+const TICK_MILLISECONDS = 200;
+const TICKS_PER_UPDATE = 5;
 
 const useStyles = createUseStyles({
   wrapper: {
@@ -82,16 +85,71 @@ const useLocalStorage = (key, defaultValue) => {
   return [val, setVal];
 };
 
+class IncrementalMean {
+
+  constructor(n = 0, mean = 0) {
+    this.mean = mean;
+    this.n = n;
+  }
+
+  update(x) {
+    let n = this.n + 1;
+    return new IncrementalMean(n, this.mean + ((x - this.mean) / n));
+  }
+
+  get value() {
+    return this.mean;
+  }
+
+}
+
+class AccelerationMean {
+
+  constructor(
+    x = new IncrementalMean(),
+    y = new IncrementalMean(),
+    z = new IncrementalMean(),
+    updated = false,
+  ) {
+    this.x = x;
+    this.y = y;
+    this.z = z;
+    this.updated = updated;
+  }
+
+  update({x, y, z}) {
+    return new AccelerationMean(
+      this.x.update(x),
+      this.y.update(y),
+      this.z.update(z),
+      true,
+    );
+  }
+
+  get value() {
+    return {
+      x: this.x.value,
+      y: this.y.value,
+      z: this.z.value,
+      updated: this.updated,
+    };
+  }
+
+}
+
 export const PaintPage = () => {
-  const [hue, setHue] = useLocalStorage('paintHue', 0);
+  const [hue, setHue] = useLocalStorage('paintHue', Math.random());
   const [saturation, setSaturation] = useLocalStorage('paintSaturation', 1);
   const [isPainting, setIsPainting] = useState(false);
+  const colour = useRef(null);
+  const acceleration = useRef(new AccelerationMean());
+  const tickAccelerations = useRef([]);
 
   const pickerColour = tinycolor.fromRatio({
     h: hue,
     s: 1,
     v: 1,
-    a: saturation || 0,
+    a: saturation,
   }).toHex8String();
   const hueColour = tinycolor.fromRatio({
     h: hue,
@@ -134,22 +192,44 @@ export const PaintPage = () => {
     });
   };
 
-  const [{ x, y, z }, setData] = useState({x: 0, y: 0, z: 0});
   const motionHandler = (event) => {
-    setData(event.acceleration);
+    acceleration.current = acceleration.current.update(event.acceleration);
+  };
+
+  const tickHandler = () => {
+    tickAccelerations.current = [...tickAccelerations.current, acceleration.current.value]
+    acceleration.current = new AccelerationMean();
+    if (tickAccelerations.current.length >= TICKS_PER_UPDATE) {
+      if (tickAccelerations.current.some((acc) => acc.updated)) {
+        console.log({
+          accelerations: tickAccelerations.current.map(({x, y, z}) => ({x, y, z})),
+          colour: colour.current,
+        });
+      }
+      tickAccelerations.current = [];
+    }
   };
 
   useEffect(() => {
+    colour.current = pickerColour;
+  }, [hue, saturation]);
+
+  useEffect(() => {
     if (isPainting) {
+      const interval = window.setInterval(tickHandler, TICK_MILLISECONDS);
       window.addEventListener('devicemotion', motionHandler);
-      return () => window.removeEventListener('devicemotion', motionHandler);
+
+      return () => {
+        window.clearInterval(interval);
+        window.removeEventListener('devicemotion', motionHandler);
+        acceleration.current = new AccelerationMean();
+      };
     }
   }, [isPainting]);
 
   return (
     <>
       <div className={classes.wrapper}>
-        <pre>x: {x}, y: {y}, z: {z}</pre>
         <p className={classes.instructions}>
           Pick a colour, click <em>Paint!</em>, then wave your phone
           around to paint on the cone of lights!
@@ -158,12 +238,12 @@ export const PaintPage = () => {
           <HuePicker
             className={classNames(classes.picker, classes.huePicker)}
             color={pickerColour}
-            onChange={({ hsv }) => !isPainting && setHue(hsv.h / 360)}
+            onChange={({ hsv }) => setHue(hsv.h / 360)}
           />
           <AlphaPicker
             className={classNames(classes.picker, classes.saturationPicker)}
             color={pickerColour}
-            onChange={({ hsv }) => !isPainting && setSaturation(hsv.a)}
+            onChange={({ hsv }) => setSaturation(hsv.a)}
           />
         </div>
         <div className={classes.paintButtonWrapper}>
