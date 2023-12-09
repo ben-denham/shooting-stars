@@ -38,11 +38,11 @@ export const NativityText = ({ onLinkClick }) => {
   const pics = {
     mary: {key: 'mary', image: maryImage, color: '#57c1ff'},
     joseph: {key: 'joseph', image: josephImage, color: '#ff5656'},
-    angel: {key: 'angel', image: angelImage, color: '#f7ff57'},
+    angel: {key: 'angel', image: angelImage, color: '#ffdf00'},
     shepherd: {key: 'shepherd', image: shepherdImage, color: '#57ff76'},
     wisemen: {key: 'wisemen', image: wisemenImage, color: '#b657ff'},
-    jesus: {key: 'jesus', image: jesusImage, color: '#c78800'},
-    star: {key: 'star', image: starImage, color: '#ffe500'},
+    jesus: {key: 'jesus', image: jesusImage, color: '#d18f00'},
+    star: {key: 'star', image: starImage, color: '#ffff00'},
   };
 
   const Link = ({ children, pic }) => {

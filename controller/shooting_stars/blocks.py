@@ -56,7 +56,7 @@ AI_TIMEOUT_SECONDS = 15
 AI_MOVE_WAIT_SECONDS = 0.75
 
 PICTURE_DURATION_SECONDS = 6
-PICTURE_STEP_SECONDS = 1
+PICTURE_STEP_SECONDS = 1.2
 PICTURE_DURATION_FRAMES = PICTURE_DURATION_SECONDS * FRAMES_PER_SECOND
 PICTURE_STEP_FRAMES = PICTURE_STEP_SECONDS * FRAMES_PER_SECOND
 
@@ -134,7 +134,7 @@ def load_picture(picture_key):
 
 
 def render_picture(*, device, picture, frame):
-    step = (frame // PICTURE_STEP_FRAMES) % len(picture)
+    step = int((frame // PICTURE_STEP_FRAMES) % len(picture))
     device.set_frame_array(picture[step])
 
 
