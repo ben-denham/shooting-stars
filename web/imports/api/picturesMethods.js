@@ -22,8 +22,6 @@ export const picturesMethods = {
     }
 
     const selector = {key: 'picture'};
-    const oldRecord = PicturesCollection.findOne(selector);
-
     PicturesCollection.upsert(
       selector,
       {

@@ -4,9 +4,11 @@ import { LightsCollection, LIGHT_COUNT } from '/imports/db/LightsCollection';
 import { lightsMethods } from '/imports/api/lightsMethods';
 import { blocksMethods } from '/imports/api/blocksMethods';
 import { picturesMethods } from '/imports/api/picturesMethods';
+import { paintMethods } from '/imports/api/paintMethods';
 import '/imports/api/lightsPublications';
 import '/imports/api/blocksPublications';
 import '/imports/api/picturesPublications';
+import '/imports/api/paintPublications';
 
 Meteor.startup(() => {
   // Initialise lights.
@@ -32,11 +34,13 @@ DDPRateLimiter.addRule(
         ...Object.keys(lightsMethods),
         ...Object.keys(blocksMethods),
         ...Object.keys(picturesMethods),
+        ...Object.keys(paintMethods),
         // Publications
         'lights',
         'blocksStates',
         'blocksInputs',
         'pictures',
+        'paint',
       ].includes(name);
     },
     // Rate limit per connection ID

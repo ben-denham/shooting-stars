@@ -145,6 +145,9 @@ export const PaintPage = () => {
   const acceleration = useRef(new AccelerationMean());
   const tickAccelerations = useRef([]);
 
+  const painterId = JSON.parse(sessionStorage.getItem('painterId')) || Math.floor(Math.random() * 1_000_000_000);
+  sessionStorage.setItem('painterId', painterId);
+
   const pickerColour = tinycolor.fromRatio({
     h: hue,
     s: 1,
@@ -201,7 +204,8 @@ export const PaintPage = () => {
     acceleration.current = new AccelerationMean();
     if (tickAccelerations.current.length >= TICKS_PER_UPDATE) {
       if (tickAccelerations.current.some((acc) => acc.updated)) {
-        console.log({
+        Meteor.call('paint.sendMovement', {
+          painterId: painterId,
           accelerations: tickAccelerations.current.map(({x, y, z}) => ({x, y, z})),
           colour: colour.current,
         });
@@ -211,7 +215,7 @@ export const PaintPage = () => {
   };
 
   useEffect(() => {
-    colour.current = pickerColour;
+    colour.current = {hue: hue, saturation: saturation};
   }, [hue, saturation]);
 
   useEffect(() => {
