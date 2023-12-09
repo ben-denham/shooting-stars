@@ -25,6 +25,7 @@ export const picturesMethods = {
     PicturesCollection.upsert(
       selector,
       {
+        timestamp: (new Date()).getTime(),
         pictureKey: pictureKey,
         ...selector,
       }

@@ -58,6 +58,13 @@ def blocks_activity(args):
         )
         inputs_sub.start()
 
+        pictures_sub = Subscription(
+            url=f'{args.meteor_url}/websocket',
+            name='pictures',
+            token=args.meteor_token,
+        )
+        pictures_sub.start()
+
         device = Device(device_id=args.twinkly_device_id)
         device.start_monitor()
 
@@ -67,12 +74,15 @@ def blocks_activity(args):
         run_blocks(
             device=device,
             inputs_sub=inputs_sub,
+            pictures_sub=pictures_sub,
             trainer=trainer,
         )
     finally:
         # Clean up threads
         if inputs_sub is not None:
             inputs_sub.stop()
+        if pictures_sub is not None:
+            pictures_sub.stop()
         if device is not None:
             device.stop_monitor()
         if trainer is not None:

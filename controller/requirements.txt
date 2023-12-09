@@ -8,3 +8,4 @@ tetris==1.0.0a0
 river==0.14.0
 # Pin version that has a piwheel.org wheel
 scipy==1.11.4
+Pillow==10.1.0

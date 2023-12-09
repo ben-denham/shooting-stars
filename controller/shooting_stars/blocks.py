@@ -1,12 +1,14 @@
 from datetime import datetime, timezone
 import dataclasses
 import logging
+from pathlib import Path
 from queue import SimpleQueue, Empty
 from threading import Thread, Lock
 from time import sleep, monotonic
 from typing import Iterator
 
 import numpy as np
+from PIL import Image
 import river.naive_bayes
 import tetris
 from tetris import MinoType, Piece
@@ -53,6 +55,21 @@ AI_TIMEOUT_SECONDS = 15
 # Number of seconds to wait between AI moves
 AI_MOVE_WAIT_SECONDS = 0.75
 
+PICTURE_DURATION_SECONDS = 6
+PICTURE_STEP_SECONDS = 1
+PICTURE_DURATION_FRAMES = PICTURE_DURATION_SECONDS * FRAMES_PER_SECOND
+PICTURE_STEP_FRAMES = PICTURE_STEP_SECONDS * FRAMES_PER_SECOND
+
+PICTURE_DIR = Path(__file__).resolve().parent / 'pixel_art'
+PICTURE_KEYS = [
+  'mary',
+  'joseph',
+  'angel',
+  'shepherd',
+  'wisemen',
+  'jesus',
+  'star',
+]
 
 def get_frame_index(row_i, col_i):
     # The first row in the top, the first col is the left.
@@ -99,6 +116,26 @@ def render_game(*, device, game):
     # frame[199, RGB] = (255, 255, 0)
 
     device.set_frame_array(frame)
+
+
+def load_picture(picture_key):
+    gif_path = Path(PICTURE_DIR / f'{picture_key}.gif')
+    gif = Image.open(gif_path)
+    picture = []
+    for i in range(gif.n_frames):
+        gif.seek(i)
+        picture_array = np.array(gif.convert('RGB'))
+        frame = np.zeros((LED_COUNT, COMPONENT_COUNT), dtype=FRAME_DTYPE)
+        for row_i, row in enumerate(picture_array):
+            for col_i, pixel in enumerate(row):
+                frame[get_frame_index(row_i, col_i), RGB] = pixel
+        picture.append(frame)
+    return picture
+
+
+def render_picture(*, device, picture, frame):
+    step = (frame // PICTURE_STEP_FRAMES) % len(picture)
+    device.set_frame_array(picture[step])
 
 
 @dataclasses.dataclass(frozen=True)
@@ -325,17 +362,39 @@ class TrainableBlocksGame(tetris.BaseGame):
 
 def get_inputs(inputs_sub):
     """Utility to get the current set of inputs from inputs_sub."""
-    return list(inputs_sub.state.values())[0]['inputs']
+    input_states = list(inputs_sub.state.values())
+    if input_states:
+        return input_states[0]['inputs']
+    return []
 
 
-def run_blocks(*, device, inputs_sub, trainer):
+def get_picture_state(pictures_sub):
+    """Utility to get the current picture state from pictures_sub."""
+    picture_states = list(pictures_sub.state.values())
+    if picture_states:
+        return picture_states[0]
+    return None
+
+
+def run_blocks(*, device, inputs_sub, pictures_sub, trainer):
     """Render frames in a continuous loop, raising device errors """
     # Ignore any initial inputs
     last_input_timestamp = None
+    last_picture_timestamp = None
+
     next_time = monotonic()
     last_input_time = monotonic()
     last_ai_time = monotonic()
+
+    picture_key = None
+    picture_frame_counter = 0
     web_updates_enabled = True
+
+    pictures = {
+        picture_key: load_picture(picture_key)
+        for picture_key in PICTURE_KEYS
+    }
+
     while True:
         game = TrainableBlocksGame.new_game(trainer)
 
@@ -407,12 +466,40 @@ def run_blocks(*, device, inputs_sub, trainer):
                         piece=dataclasses.replace(game.piece),
                     ))
 
-                # Send game to device
+            # Handle picture state
+            if pictures_sub.state:
+                picture_state = get_picture_state(pictures_sub)
+                if picture_state is not None:
+                    if last_picture_timestamp is None:
+                        # Ignore the first picture on start - as it is probably stale
+                        last_picture_timestamp = picture_state['timestamp']
+                    if picture_state['timestamp'] > last_picture_timestamp and picture_state['pictureKey'] in pictures:
+                        picture_key = picture_state['pictureKey']
+                        picture_frame_counter = 0
+                        last_picture_timestamp = picture_state['timestamp']
+
+            # Picture tick
+            if picture_key is not None:
+                if picture_frame_counter > PICTURE_DURATION_FRAMES:
+                    picture_key = None
+                else:
+                    picture_frame_counter += 1
+
+            # Only render if the device is connected
+            if device.connected or DEBUG:
                 try:
-                    render_game(
-                        device=device,
-                        game=game,
-                    )
+                    if picture_key is not None:
+                        render_picture(
+                            device=device,
+                            picture=pictures[picture_key],
+                            frame=picture_frame_counter,
+                        )
+                    else:
+                        # Send game to device
+                        render_game(
+                            device=device,
+                            game=game,
+                        )
                 except DeviceDisconnected:
                     logging.info('Device disconnected')
 

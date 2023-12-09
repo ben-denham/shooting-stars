@@ -1,7 +1,13 @@
 import React, { useState } from 'react';
 import {createUseStyles} from 'react-jss';
 
-const testImage = '/images/pixel-art/test.gif';
+const maryImage = '/images/pixel-art/mary.gif';
+const josephImage = '/images/pixel-art/joseph.gif';
+const angelImage = '/images/pixel-art/angel.gif';
+const shepherdImage = '/images/pixel-art/shepherd.gif';
+const wisemenImage = '/images/pixel-art/wisemen.gif';
+const jesusImage = '/images/pixel-art/jesus.gif';
+const starImage = '/images/pixel-art/star.gif';
 
 const useStyles = createUseStyles({
   scripture: {
@@ -30,13 +36,13 @@ export const NativityText = ({ onLinkClick }) => {
   const classes = useStyles();
 
   const pics = {
-    mary: {key: 'mary', image: testImage, color: '#57c1ff'},
-    joseph: {key: 'joseph', image: testImage, color: '#ff5656'},
-    angel: {key: 'angel', image: testImage, color: '#f7ff57'},
-    shepherd: {key: 'shepherd', image: testImage, color: '#57ff76'},
-    wisemen: {key: 'wisemen', image: testImage, color: '#b657ff'},
-    jesus: {key: 'jesus', image: testImage, color: '#c78800'},
-    star: {key: 'star', image: testImage, color: '#ffe500'},
+    mary: {key: 'mary', image: maryImage, color: '#57c1ff'},
+    joseph: {key: 'joseph', image: josephImage, color: '#ff5656'},
+    angel: {key: 'angel', image: angelImage, color: '#f7ff57'},
+    shepherd: {key: 'shepherd', image: shepherdImage, color: '#57ff76'},
+    wisemen: {key: 'wisemen', image: wisemenImage, color: '#b657ff'},
+    jesus: {key: 'jesus', image: jesusImage, color: '#c78800'},
+    star: {key: 'star', image: starImage, color: '#ffe500'},
   };
 
   const Link = ({ children, pic }) => {
