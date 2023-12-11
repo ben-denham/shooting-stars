@@ -87,6 +87,8 @@ class Device:
         if not self.connected:
             raise DeviceDisconnected()
 
+        self.control.set_mode('rt')
+
         if array.dtype != FRAME_DTYPE:
             raise ValueError('Invalid frame array')
 
