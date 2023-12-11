@@ -44,10 +44,21 @@ meteor deploy <subdomain>.au.meteorapp.com --free --mongo --settings meteor-sett
   * `python -m venv .venv`
   * `source .venv/bin/activate`
   * `python -m pip install -r requirements.txt`
-* Place `controller/shooting-stars-lights.service` and  `controller/shooting-stars-blocks.service` in `/etc/systemd/system/`,
-  updating the username and system paths, subdomain name, meteor token, and Twinkly device ID.
+* Place service files in `/etc/systemd/system/`, updating the username and system paths, subdomain name, meteor token, and Twinkly device ID:
+  * `controller/shooting-stars-lights.service`
+  * `controller/shooting-stars-blocks.service`
+  * `controller/shooting-stars-cone.service`
   * Note that any percentages in the token must be escaped by formatting them as double percentages.
-* Start with `sudo systemctl restart shooting-stars-lights` and `sudo systemctl restart shooting-stars-blocks`
-* Start at boot with `sudo systemctl enable shooting-stars-lights` and `sudo systemctl enable shooting-stars-blocks`
-* View logs with `journalctl -fu shooting-stars-lights.service` and `journalctl -fu shooting-stars-blocks.service`
-* Reload changes to service file with `sudo systemctl daemon-reload`
+* Start with:
+  * `sudo systemctl restart shooting-stars-lights`
+  * `sudo systemctl restart shooting-stars-blocks`
+  * `sudo systemctl restart shooting-stars-cone`
+* Start at boot with:
+  * `sudo systemctl enable shooting-stars-lights`
+  * `sudo systemctl enable shooting-stars-blocks`
+  * `sudo systemctl enable shooting-stars-cone`
+* View logs with:
+  * `journalctl -fu shooting-stars-lights.service`
+  * `journalctl -fu shooting-stars-blocks.service`
+  * `journalctl -fu shooting-stars-cone.service`
+* Reload changes to service files with `sudo systemctl daemon-reload`

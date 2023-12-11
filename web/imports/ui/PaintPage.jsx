@@ -6,8 +6,8 @@ import tinycolor from 'tinycolor2';
 
 const candycaneStripeImage = '/images/candycane-stripe.png';
 
-const TICK_MILLISECONDS = 200;
-const TICKS_PER_UPDATE = 5;
+const TICK_MILLISECONDS = 100;
+const TICKS_PER_UPDATE = 1;
 
 const useStyles = createUseStyles({
   wrapper: {
@@ -103,7 +103,7 @@ class IncrementalMean {
 
 }
 
-class AccelerationMean {
+class D3Mean {
 
   constructor(
     x = new IncrementalMean(),
@@ -118,7 +118,7 @@ class AccelerationMean {
   }
 
   update({x, y, z}) {
-    return new AccelerationMean(
+    return new D3Mean(
       this.x.update(x),
       this.y.update(y),
       this.z.update(z),
@@ -142,8 +142,8 @@ export const PaintPage = () => {
   const [saturation, setSaturation] = useLocalStorage('paintSaturation', 1);
   const [isPainting, setIsPainting] = useState(false);
   const colour = useRef(null);
-  const acceleration = useRef(new AccelerationMean());
-  const tickAccelerations = useRef([]);
+  const velocity = useRef(new D3Mean());
+  const tickVelocities = useRef([]);
 
   const painterId = JSON.parse(sessionStorage.getItem('painterId')) || Math.floor(Math.random() * 1_000_000_000);
   sessionStorage.setItem('painterId', painterId);
@@ -170,7 +170,7 @@ export const PaintPage = () => {
 
   const handlePaintButton = () => {
     const disallowedAlert = () => {
-      alert('Your browser is not allowing this website to access motion data. If you are on an iPhone, go to Settings -> Safari -> Advanced -> Website Data, then search for this website, click Edit, and delete the entry for it.');
+      alert('Your browser is not allowing this website to access orientation data. If you are on an iPhone, go to Settings -> Safari -> Advanced -> Website Data, then search for this website, click Edit, and delete the entry for it.');
     }
 
     if (isPainting) {
@@ -179,8 +179,8 @@ export const PaintPage = () => {
     }
 
     let permissionRequest = new Promise((resolve) => resolve('granted'));
-    if (typeof(DeviceMotionEvent.requestPermission) === 'function') {
-      let permissionRequest = DeviceMotionEvent.requestPermission();
+    if (typeof(DeviceOrientationEvent.requestPermission) === 'function') {
+      let permissionRequest = DeviceOrientationEvent.requestPermission();
     }
     permissionRequest.then((response) => {
       if (response === 'granted') {
@@ -195,22 +195,29 @@ export const PaintPage = () => {
     });
   };
 
-  const motionHandler = (event) => {
-    acceleration.current = acceleration.current.update(event.acceleration);
+  const orientationHandler = (event) => {
+    const alphaRadians = event.alpha * Math.PI / 180;
+    const betaRadians = event.beta * Math.PI / 180;
+    const eventVelocity = {
+      x: Math.sin(alphaRadians) * Math.cos(betaRadians),
+      y: Math.cos(alphaRadians) * Math.cos(betaRadians),
+      z: Math.sin(betaRadians),
+    };
+    velocity.current = velocity.current.update(eventVelocity);
   };
 
   const tickHandler = () => {
-    tickAccelerations.current = [...tickAccelerations.current, acceleration.current.value]
-    acceleration.current = new AccelerationMean();
-    if (tickAccelerations.current.length >= TICKS_PER_UPDATE) {
-      if (tickAccelerations.current.some((acc) => acc.updated)) {
+    tickVelocities.current = [...tickVelocities.current, velocity.current.value]
+    velocity.current = new D3Mean();
+    if (tickVelocities.current.length >= TICKS_PER_UPDATE) {
+      if (tickVelocities.current.some((acc) => acc.updated)) {
         Meteor.call('paint.sendMovement', {
           painterId: painterId,
-          accelerations: tickAccelerations.current.map(({x, y, z}) => ({x, y, z})),
+          velocities: tickVelocities.current.map(({x, y, z}) => ({x, y, z})),
           colour: colour.current,
         });
       }
-      tickAccelerations.current = [];
+      tickVelocities.current = [];
     }
   };
 
@@ -221,12 +228,12 @@ export const PaintPage = () => {
   useEffect(() => {
     if (isPainting) {
       const interval = window.setInterval(tickHandler, TICK_MILLISECONDS);
-      window.addEventListener('devicemotion', motionHandler);
+      window.addEventListener('deviceorientation', orientationHandler);
 
       return () => {
         window.clearInterval(interval);
-        window.removeEventListener('devicemotion', motionHandler);
-        acceleration.current = new AccelerationMean();
+        window.removeEventListener('deviceorientation', orientationHandler);
+        velocity.current = new D3Mean();
       };
     }
   }, [isPainting]);
@@ -235,8 +242,8 @@ export const PaintPage = () => {
     <>
       <div className={classes.wrapper}>
         <p className={classes.instructions}>
-          Pick a colour, click <em>Paint!</em>, then wave your phone
-          around to paint on the cone of lights!
+          Pick a colour, click <em>Paint!</em>, then point your phone in any
+          direction to direct your paint brush around the cone of lights!
         </p>
         <div>
           <HuePicker

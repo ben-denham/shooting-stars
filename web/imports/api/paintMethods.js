@@ -8,9 +8,9 @@ export const paintMethods = {
     check(movement, {
       painterId: Match.Integer,
       colour: {hue: Number, saturation: Number},
-      accelerations: [{x: Number, y: Number, z: Number}],
+      velocities: [{x: Number, y: Number, z: Number}],
     });
-    const { painterId, colour, accelerations } = movement;
+    const { painterId, colour, velocities } = movement;
 
     const nowMs = (new Date()).getTime();
 
@@ -26,7 +26,7 @@ export const paintMethods = {
     record.painterMovements[painterId] = record.painterMovements[painterId] || [];
     record.painterMovements[painterId].push({
       timestamp: nowMs,
-      accelerations: accelerations,
+      velocities: velocities,
       colour: colour,
     });
 

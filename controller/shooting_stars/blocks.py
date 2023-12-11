@@ -377,7 +377,7 @@ def get_picture_state(pictures_sub):
 
 
 def run_blocks(*, device, inputs_sub, pictures_sub, trainer):
-    """Render frames in a continuous loop, raising device errors """
+    """Render frames in a continuous loop"""
     # Ignore any initial inputs
     last_input_timestamp = None
     last_picture_timestamp = None

@@ -6,8 +6,9 @@ from .subscription import Subscription
 from .device import Device
 from .animation import run_animation, AnimationState
 from .blocks import BlocksTrainer, run_blocks
+from .cone import run_cone
 
-ACTIVITIES = ['lights', 'blocks']
+ACTIVITIES = ['lights', 'blocks', 'cone']
 
 parser = ArgumentParser(prog='shooting_stars',
                         description='Christmas lights controller')
@@ -89,6 +90,32 @@ def blocks_activity(args):
             trainer.stop()
 
 
+def cone_activity(args):
+    paint_sub = None
+    device = None
+    try:
+        paint_sub = Subscription(
+            url=f'{args.meteor_url}/websocket',
+            name='paint',
+            token=args.meteor_token,
+        )
+        paint_sub.start()
+
+        device = Device(device_id=args.twinkly_device_id)
+        device.start_monitor()
+
+        run_cone(
+            device=device,
+            paint_sub=paint_sub,
+        )
+    finally:
+        # Clean up threads
+        if paint_sub is not None:
+            paint_sub.stop()
+        if device is not None:
+            device.stop_monitor()
+
+
 def main():
     args = parser.parse_args()
 
@@ -100,6 +127,8 @@ def main():
         lights_activity(args)
     elif args.activity == 'blocks':
         blocks_activity(args)
+    elif args.activity == 'cone':
+        cone_activity(args)
     else:
         logging.error(f'Unrecognised activity: {args.activity}')
 

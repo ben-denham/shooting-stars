@@ -96,3 +96,6 @@ class Device:
             frame.write(array_bytes)
             frame.seek(0)
             self.control.set_rt_frame_socket(frame, version=3)
+
+    def get_layout(self):
+        return self.control.get_led_layout().data

@@ -131,7 +131,7 @@ def render_frame(*, device, lights, animation_state, frame_idx):
 
 
 def run_animation(*, device, lights, animation_state):
-    """Render frames in a continuous loop, raising device errors """
+    """Render frames in a continuous loop"""
     next_time = monotonic()
     frame_idx = 0
     while True:
