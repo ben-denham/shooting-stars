@@ -46,7 +46,7 @@ meteor deploy <subdomain>.au.meteorapp.com --free --mongo --settings meteor-sett
   * `python -m venv .venv`
   * `source .venv/bin/activate`
   * `python -m pip install -r requirements.txt`
-* Place service files in `/etc/systemd/system/`, updating the username and system paths, subdomain name, meteor token, and Twinkly device ID:
+* Place service files in `/etc/systemd/system/`, updating the username and system paths, Python venv path, subdomain name, meteor token, and Twinkly device ID:
   * `controller/shooting-stars-lights.service`
   * `controller/shooting-stars-blocks.service`
   * `controller/shooting-stars-cone.service`
