@@ -7,7 +7,7 @@ import tinycolor from 'tinycolor2';
 const candycaneStripeImage = '/images/candycane-stripe.png';
 
 const TICK_MILLISECONDS = 100;
-const TICKS_PER_UPDATE = 1;
+const TICKS_PER_UPDATE = 2;
 
 const useStyles = createUseStyles({
   wrapper: {

@@ -6,7 +6,7 @@ from typing import Optional
 
 import numpy as np
 
-from .utils import hsv_to_rgb
+from .utils import hsv_to_rgb, indexes_to_mask
 from .device import FRAME_DTYPE, DeviceDisconnected
 
 COMPONENT_COUNT = 3
@@ -16,9 +16,11 @@ STEP_DURATION_MILLISECONDS = 100
 STEP_DURATION_SECONDS = STEP_DURATION_MILLISECONDS / 1000
 FRAME_DELAY_SECONDS = STEP_DURATION_SECONDS
 
-VELOCITY_MAGNITUDE = 0.01
-MAX_ILLUMINATION_DISTANCE = 10
-MAX_STORED_STEPS = 100
+EXCLUDED_LIGHT_INDEXES = [
+    *range(0, 14),
+    *range(200, 211),
+]
+MAX_ILLUMINATION_DISTANCE = 0.3
 
 
 @dataclass(frozen=True)
@@ -48,86 +50,62 @@ class Colour:
 @dataclass(frozen=True)
 class PainterStep:
     colour: Colour
-    velocity: np.ndarray
+    direction: np.ndarray
     timestamp: int
 
 
 @dataclass(frozen=True)
 class PainterState:
     colour: Colour
-    velocity: np.ndarray
-    position: np.ndarray
-    last_step_timestamp: int
-    steps: list[PainterStep]
-    loaded: bool
+    direction: np.ndarray
 
-    def update(self, *, step, light_positions):
-        timestamp = step.timestamp if step else self.last_step_timestamp
-        colour = step.colour if step else self.colour
-        velocity = step.velocity if step else self.velocity
-        if np.linalg.norm(velocity) <= 0:
-            velocity = self.velocity
-
-        # Check for a positive dot product between light positions
-        # (relative to current position) and the direction of velocity
-        # (dot product is positive when vectors are within 90 degrees)
-        relative_light_positions = light_positions - self.position
-        dot_products = np.sum(relative_light_positions * velocity, axis=1)
-        same_direction_mask = dot_products > 0
-        # Scale velocity to have a magnitude of VELOCITY_MAGNITUDE
-        velocity_norm = np.linalg.norm(velocity)
-        scaled_velocity = velocity / velocity_norm if velocity_norm > 0 else velocity
-        scaled_velocity = scaled_velocity * VELOCITY_MAGNITUDE
-        # Find distance between every point and (position + scaled_velocity)
-        delta_position = self.position + scaled_velocity
-        distances_to_delta_position = np.linalg.norm(light_positions - delta_position, axis=1)
-        # Ignore distances to points we know are in the wrong direction.
-        distances_to_delta_position[~same_direction_mask] = np.inf
-        # Find nearest point to delta_position in the right direction
-        nearest_index = np.argmin(distances_to_delta_position)
-        # If no lights are in the right direction, stay at the current position
-        if distances_to_delta_position[nearest_index] == np.inf:
-            position = self.position
-        else:
-            position = light_positions[nearest_index]
-
-        if self.loaded:
-            steps = []
-        elif step is None:
-            steps = self.steps
-        else:
-            steps = [*self.steps, step][-MAX_STORED_STEPS:]
+    def update(self, *, step):
+        # Never allow the direction to point downward by clipping the
+        # z value to zero.
+        direction = step.direction
+        direction[2] = np.max([0, direction[2]])
+        direction_magnitude = np.linalg.norm(direction)
+        direction = (
+            direction / direction_magnitude
+            if direction_magnitude > 0
+            else self.direction
+        )
 
         return PainterState(
-            last_step_timestamp=timestamp,
-            colour=colour,
-            velocity=velocity,
-            position=position,
-            steps=steps,
-            loaded=self.loaded,
+            colour=step.colour,
+            direction=direction,
         )
 
 
 INITIAL_STATE = PainterState(
     colour=Colour(hue=0, saturation=0),
-    velocity=np.array([0, 0, 0]),
-    position=np.array([0, 0, 0]),
-    last_step_timestamp=0,
-    steps=[],
-    loaded=False,
+    direction=np.array([0, 0, 1]),
 )
 
 
 class PaintState:
 
     def __init__(self, *, light_positions):
-        axes_max = np.max(light_positions, axis=0)
-        axes_min = np.min(light_positions, axis=0)
-        self.light_positions = (light_positions - axes_min) / (axes_max - axes_min)
+        # Get the positions of lights that aren't excluded
+        included_lights_mask = ~indexes_to_mask(EXCLUDED_LIGHT_INDEXES, light_positions.shape[0])
+        included_light_positions = light_positions[included_lights_mask, :]
+        # Find the midpoint of the included lights
+        lights_origin = (np.max(included_light_positions, axis=0) + np.min(included_light_positions, axis=0)) / 2
+        # Set up/down midpoint to the bottom
+        lights_origin[2] = 0
+        # Get the vector from the origin to each light
+        relative_light_positions = light_positions - lights_origin
+        # Normalise the magnitude of the relative light positions so
+        # that they are on a unit sphere
+        light_directions = relative_light_positions / np.linalg.norm(relative_light_positions, axis=1)[:, np.newaxis]
+
+        self.light_directions = light_directions
         self.last_movement_timestamp = None
         self.painter_to_steps = {}
         self.painter_to_state = {}
-        self.frame = np.zeros((self.light_positions.shape[0], COMPONENT_COUNT), dtype=FRAME_DTYPE)
+
+        self.full_value_frame = np.full((light_positions.shape[0], COMPONENT_COUNT), 255, dtype=FRAME_DTYPE)
+        self.frame = np.zeros((light_positions.shape[0], COMPONENT_COUNT), dtype=FRAME_DTYPE)
 
     def add_movements(self, painter_movements):
         # Ignore the first movements on start - as they are probably stale
@@ -147,7 +125,7 @@ class PaintState:
                 if len(painter_steps) == 0:
                     painter_steps.append(PainterStep(
                         colour=movement_colour,
-                        velocity=np.array([0, 0, 0]),
+                        direction=np.array([0, 0, 0]),
                         timestamp=movement['timestamp'],
                     ))
                 current_step = painter_steps[-1]
@@ -164,16 +142,15 @@ class PaintState:
                 else:
                     step_colours = [movement_colour for _ in range(step_count)]
 
-                velocity_vector = current_step.velocity
-                for step_velocity, step_colour in zip(movement['velocities'], step_colours):
-                    velocity_vector = np.array([
-                        step_velocity['x'],
-                        step_velocity['y'],
-                        step_velocity['z'],
+                for step_direction, step_colour in zip(movement['velocities'], step_colours):
+                    direction_vector = np.array([
+                        step_direction['x'],
+                        step_direction['y'],
+                        step_direction['z'],
                     ])
                     painter_steps.append(PainterStep(
                         colour=step_colour,
-                        velocity=velocity_vector,
+                        direction=direction_vector,
                         timestamp=movement['timestamp'],
                     ))
             self.painter_to_steps[painter_id] = painter_steps
@@ -185,71 +162,55 @@ class PaintState:
         ], default=self.last_movement_timestamp)
 
     def tick_state(self):
-        self.painter_to_steps = {
-            painter_id: steps
-            for painter_id, steps in self.painter_to_steps.items()
-            if len(steps) > 0
-        }
         painter_ids = set([*self.painter_to_steps.keys(), *self.painter_to_state.keys()])
         for painter_id in painter_ids:
-            painter_state = self.painter_to_state.get(painter_id, INITIAL_STATE)
             try:
                 step = self.painter_to_steps.get(painter_id, deque()).popleft()
             except IndexError:
-                step = None
-            new_painter_state = painter_state.update(
-                step=step,
-                light_positions=self.light_positions,
-            )
-            self.painter_to_state[painter_id] = new_painter_state
+                # Remove the painter if there are no steps left for it
+                self.painter_to_steps.pop(painter_id, None)
+                self.painter_to_state.pop(painter_id, None)
+                continue
+            painter_state = self.painter_to_state.get(painter_id, INITIAL_STATE)
+            painter_state = painter_state.update(step=step)
+            self.painter_to_state[painter_id] = painter_state
 
     def tick_frame(self):
-        self.frame = self.frame * 0.1
+        active_frame_mask = np.full(self.light_directions.shape[0], False)
+        active_frame = np.zeros((self.light_directions.shape[0], COMPONENT_COUNT))
         for painter_id, painter_state in self.painter_to_state.items():
-            rgb = hsv_to_rgb(h=painter_state.colour.hue, s=painter_state.colour.saturation, v=1)
-            distances = np.linalg.norm(self.light_positions - painter_state.position, axis=1)
-            # weights = 1 / (9 * distances)
-            # weights[weights < 0.5] = 0
+            distances = np.linalg.norm(self.light_directions - painter_state.direction, axis=1)
             # Linearly scale from weight 1 to 0 between distance 0 and MAX_ILLUMINATION_DISTANCE
-            weights = 1 - (distances * MAX_ILLUMINATION_DISTANCE)
-            self.frame += np.outer(weights, rgb)
-        self.frame = np.clip(self.frame, 0, 255).round().astype(FRAME_DTYPE)
-        #self.frame = (np.ones((self.light_positions.shape[0], COMPONENT_COUNT), dtype=FRAME_DTYPE) * 100).astype(FRAME_DTYPE)
-
-    def save_painters(self):
-        # TODO
-        pass
-
-    def load_painters(self):
-        # TODO
-        pass
+            weights = 1 - (distances / MAX_ILLUMINATION_DISTANCE)
+            mask = weights > 0
+            active_frame[mask, RGB] = hsv_to_rgb(h=painter_state.colour.hue, s=painter_state.colour.saturation, v=1)
+            active_frame_mask = active_frame_mask | mask
+        self.full_value_frame[active_frame_mask, RGB] = np.clip(active_frame[active_frame_mask, RGB], 0, 255)
+        self.frame = self.full_value_frame.copy()
+        self.frame[~active_frame_mask] = self.frame[~active_frame_mask] * 0.25
+        self.frame = self.frame.round().astype(FRAME_DTYPE)
 
 
 def render_cone(*, device, paint_state):
-    #from pprint import pformat
-    #logging.info(pformat(paint_state.painter_to_state))
-    logging.info(f'{paint_state.frame.shape}, {np.isnan(paint_state.frame).sum()}')
     device.set_frame_array(paint_state.frame)
 
-
-import json
 
 def run_cone(*, device, paint_sub):
     """Render frames in a continuous loop"""
     next_time = monotonic()
 
-    # TODO
-    # while True:
-    #     if True or device.connected:
-            # layout = device.get_layout()
-    with open('layout.json', 'r') as json_file:
-        layout = json.loads(json_file.read())
+    while True:
+        if device.connected:
+            layout = device.get_layout()
+            break
+        logging.info('Waiting for layout')
+        sleep(1)
+
+    # Re-orient dimensions so that axis z/2 is up/down
     light_positions = np.array([
         [point['z'], point['x'], point['y']]
         for point in layout['coordinates']
     ])
-    #break
-
     paint_state = PaintState(light_positions=light_positions)
 
     while True:
@@ -262,10 +223,8 @@ def run_cone(*, device, paint_sub):
             if len(paint_records) > 0:
                 paint_state.add_movements(paint_records[0]['painterMovements'])
 
-        paint_state.load_painters()
         paint_state.tick_state()
         paint_state.tick_frame()
-        paint_state.save_painters()
 
         try:
             render_cone(

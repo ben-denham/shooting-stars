@@ -24,6 +24,8 @@ Python.
    make deps
    make run
    ```
+5. NOTE: To test `deviceorientation` events for the `cone`, the
+   website needs to be served over https (e.g. with a simple proxy).
 
 ## Web Deployment
 
@@ -62,3 +64,7 @@ meteor deploy <subdomain>.au.meteorapp.com --free --mongo --settings meteor-sett
   * `journalctl -fu shooting-stars-blocks.service`
   * `journalctl -fu shooting-stars-cone.service`
 * Reload changes to service files with `sudo systemctl daemon-reload`
+
+## Misc
+
+* `assets/cone-layout-backup.json` can be restored with xled's `set_led_layout()`.

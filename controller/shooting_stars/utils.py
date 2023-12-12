@@ -54,3 +54,9 @@ def hue_to_rgb(hues):
 
     rgb = np.stack([r, g, b], axis=-1)
     return (rgb * 255).round().astype(FRAME_DTYPE)
+
+
+def indexes_to_mask(indexes, shape):
+    mask = np.zeros(shape, dtype=bool)
+    mask[indexes] = True
+    return mask

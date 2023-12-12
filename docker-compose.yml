@@ -20,7 +20,16 @@ services:
   controller-blocks:
     build: controller
     command: ['python', '-m', 'jurigged', '-m', 'shooting_stars', 'ws://localhost:2500',
-              'blocks', '${STRINGS_TWINKLY_DEVICE_ID}', '--meteor-token=${METEOR_TOKEN}',
+              'blocks', '${GRID_TWINKLY_DEVICE_ID}', '--meteor-token=${METEOR_TOKEN}',
+              '--log-level=info']
+    volumes:
+      - ./controller:/home/coder/src
+    # Connect to host network for visibility of light devices
+    network_mode: "host"
+  controller-cone:
+    build: controller
+    command: ['python', '-m', 'jurigged', '-m', 'shooting_stars', 'ws://localhost:2500',
+              'cone', '${CONE_TWINKLY_DEVICE_ID}', '--meteor-token=${METEOR_TOKEN}',
               '--log-level=info']
     volumes:
       - ./controller:/home/coder/src
