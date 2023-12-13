@@ -10,9 +10,11 @@ from .device import FRAME_DTYPE, DeviceDisconnected
 FRAMES_PER_SECOND = 20
 FRAME_DELAY_SECONDS = 1 / FRAMES_PER_SECOND
 
-COMPONENT_COUNT = 4
-W = 0
-RGB = slice(1, 4)
+# COMPONENT_COUNT = 4
+# W = 0
+# RGB = slice(1, 4)
+COMPONENT_COUNT = 3
+RGB = slice(0, 3)
 LED_COUNT = 190
 ICICLE_SCHEMA = [2, 4, 6, 2, 5]
 
@@ -104,7 +106,8 @@ def render_frame(*, device, lights, animation_state, frame_idx):
 
         # Colour mode
         if light['colourMode'] == 'white':
-            frame[light_leds, W] = 255
+            # frame[light_leds, W] = 255
+            frame[light_leds, RGB] = 255
         elif light['colourMode'] == 'colour':
             frame[light_leds, RGB] = hsv_to_rgb(h=light['colourHue'], s=light['colourSaturation'], v=1)
         elif light['colourMode'] == 'rainbow':
