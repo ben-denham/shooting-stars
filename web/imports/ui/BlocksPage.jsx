@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useTracker } from 'meteor/react-meteor-data';
+import { Tracker } from 'meteor/tracker';
 import { createUseStyles } from 'react-jss';
 import classNames from 'classnames';
 import { useSwipeable } from 'react-swipeable';
@@ -101,16 +102,16 @@ const useStyles = createUseStyles({
 export const BlocksPage = () => {
   const classes = useStyles();
 
-  const { state, isLoading } = useTracker(() => {
+  const { state, isLoading } = useTracker(async (c) => {
     const handler = Meteor.subscribe('blocksStates');
 
     if (!handler.ready()) {
       return { state: null, isLoading: true };
     }
 
-    const state = BlocksStatesCollection.findOne({key: 'game-state'});
-
-    return { state };
+    return await Tracker.withComputation(c, () => {
+      state: BlocksStatesCollection.findOne({key: 'game-state'}).fetchAsync()
+    };
   });
 
   const now = (new Date()).getTime();
@@ -120,7 +121,7 @@ export const BlocksPage = () => {
   ) : false);
 
   const sendInput = (input) => {
-    Meteor.call('blocks.sendInput', input);
+    Meteor.callAsync('blocks.sendInput', input);
   };
 
   const swipeHandlers = useSwipeable({

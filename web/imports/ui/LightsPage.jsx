@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useTracker } from 'meteor/react-meteor-data';
+import { Tracker } from 'meteor/tracker';
 import {createUseStyles} from 'react-jss';
 
 import { LightsCollection } from '/imports/db/LightsCollection';
@@ -39,22 +40,20 @@ const useStyles = createUseStyles({
 export const LightsPage = () => {
   const classes = useStyles();
 
-  const { lights, isLoading } = useTracker(() => {
+  const { lights, isLoading } = useTracker(async (c) => {
     const handler = Meteor.subscribe('lights');
 
     if (!handler.ready()) {
       return { lights: [], isLoading: true };
     }
 
-    const lights = LightsCollection.find({}, {
-      sort: { idx: 1 }
-    }).fetch();
-
-    return { lights };
+    return await Tracker.withComputation(c, () => {
+      lights: LightsCollection.find({}, {sort: { idx: 1 }}).fetchAsync()
+    };
   });
   const [selectedLightId, setSelectedLightId] = useState(null);
 
-  const selectedLight = lights.find(light => light._id === selectedLightId);
+  const selectedLight = await lights.findOne(light => light._id === selectedLightId);
 
   return (
     <>

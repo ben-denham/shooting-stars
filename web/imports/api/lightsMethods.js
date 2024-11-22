@@ -3,7 +3,7 @@ import { check } from 'meteor/check';
 import { LightsCollection, COLOUR_MODES, ANIMATIONS } from '/imports/db/LightsCollection';
 
 export const lightsMethods = {
-  'lights.setColourMode'(lightId, colourMode) {
+  async 'lights.setColourMode'(lightId, colourMode) {
     check(lightId, String);
     check(colourMode, String);
 
@@ -11,11 +11,11 @@ export const lightsMethods = {
       throw new Meteor.Error('invalid-colour-mode', 'Invalid colour mode');
     }
 
-    LightsCollection.update(lightId, {
+    await LightsCollection.updateAsync(lightId, {
       $set: { colourMode }
     });
   },
-  'lights.setColourHue'(lightId, colourHue) {
+  async 'lights.setColourHue'(lightId, colourHue) {
     check(lightId, String);
     check(colourHue, Number);
 
@@ -23,11 +23,11 @@ export const lightsMethods = {
       throw new Meteor.Error('invalid-colour-hue', 'Hue must be between 0 and 1');
     }
 
-    LightsCollection.update(lightId, {
+    await LightsCollection.updateAsync(lightId, {
       $set: { colourHue }
     });
   },
-  'lights.setColourSaturation'(lightId, colourSaturation) {
+  async 'lights.setColourSaturation'(lightId, colourSaturation) {
     check(lightId, String);
     check(colourSaturation, Number);
 
@@ -35,11 +35,11 @@ export const lightsMethods = {
       throw new Meteor.Error('invalid-colour-saturation', 'Saturation must be between 0 and 1');
     }
 
-    LightsCollection.update(lightId, {
+    await LightsCollection.updateAsync(lightId, {
       $set: { colourSaturation }
     });
   },
-  'lights.setAnimation'(lightId, animation) {
+  async 'lights.setAnimation'(lightId, animation) {
     check(lightId, String);
     check(animation, String);
 
@@ -47,7 +47,7 @@ export const lightsMethods = {
       throw new Meteor.Error('invalid-animation', 'Invalid animation');
     }
 
-    LightsCollection.update(lightId, {
+    await LightsCollection.updateAsync(lightId, {
       $set: { animation }
     });
   }

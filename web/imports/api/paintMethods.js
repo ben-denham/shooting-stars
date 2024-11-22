@@ -4,7 +4,7 @@ import { check, Match } from 'meteor/check';
 import { PaintCollection } from '/imports/db/PaintCollection';
 
 export const paintMethods = {
-  'paint.sendMovement'(movement) {
+  async 'paint.sendMovement'(movement) {
     check(movement, {
       painterId: Match.Integer,
       colour: {hue: Number, saturation: Number},
@@ -20,7 +20,7 @@ export const paintMethods = {
       painterMovements: {},
       ...selector,
     };
-    const record = PaintCollection.findOne(selector) || defaultRecord;
+    const record = await PaintCollection.findOneAsync(selector) || defaultRecord;
 
     // Add new movement.
     record.painterMovements[painterId] = record.painterMovements[painterId] || [];
@@ -46,7 +46,7 @@ export const paintMethods = {
       delete record.painterMovements[painterId];
     });
 
-    PaintCollection.upsert(selector, record);
+    await PaintCollection.upsertAsync(selector, record);
   },
 };
 

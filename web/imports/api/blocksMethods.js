@@ -12,7 +12,7 @@ export const INPUTS = [
 ];
 
 export const blocksMethods = {
-  'blocks.sendInput'(inputType) {
+  async 'blocks.sendInput'(inputType) {
     check(inputType, String);
 
     if (!INPUTS.includes(inputType)) {
@@ -20,12 +20,12 @@ export const blocksMethods = {
     }
 
     const selector = {key: 'inputs'};
-    const oldRecord = BlocksInputsCollection.findOne(selector);
+    const oldRecord = await BlocksInputsCollection.findOneAsync(selector);
     const oldInputs = oldRecord ? oldRecord.inputs : [];
     // Keep only the 10 most recent inputs
     const keptInputs = oldInputs.sort((inputA, inputB) => inputA.timestamp - inputB.timestamp).slice(-10);
 
-    BlocksInputsCollection.upsert(
+    await BlocksInputsCollection.upsertAsync(
       selector,
       {
         inputs: [...keptInputs, {type: inputType, timestamp: (new Date()).getTime()}],
@@ -33,7 +33,7 @@ export const blocksMethods = {
       }
     );
   },
-  'blocks.updateState'(token, state) {
+  async 'blocks.updateState'(token, state) {
     check(token, String);
     check(state, {
       score: Number,
@@ -46,8 +46,8 @@ export const blocksMethods = {
     }
 
     const selector = {key: 'game-state'};
-    const oldRecord = BlocksStatesCollection.findOne(selector);
-    BlocksStatesCollection.upsert(
+    const oldRecord = await BlocksStatesCollection.findOneAsync(selector);
+    await BlocksStatesCollection.upsertAsync(
       selector,
       {
         ...state,

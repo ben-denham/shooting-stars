@@ -124,18 +124,18 @@ export const LightForm = ({ light, setSelectedLightId, className }) => {
   // Only allow updates once every 0.2 seconds.
   const debounced = (func) => useCallback(debounce(func, 200, { maxWait: 200 }), [light]);
   const handleColourModeChange = debounced((colourMode) => {
-    Meteor.call('lights.setColourMode', light._id, colourMode);
+    Meteor.callAsync('lights.setColourMode', light._id, colourMode);
   })
   const handleHueChange = debounced(({ hsv }) => {
     const hue = hsv.h / 360;
-    Meteor.call('lights.setColourHue', light._id, hue);
+    Meteor.callAsync('lights.setColourHue', light._id, hue);
   });
   const handleSaturationChange = debounced(({ hsv }) => {
-    Meteor.call('lights.setColourSaturation', light._id, hsv.a);
+    Meteor.callAsync('lights.setColourSaturation', light._id, hsv.a);
   });
   const handleAnimationChange = debounced((animation) => {
-    Meteor.call('lights.setAnimation', light._id, animation);
-  })
+    Meteor.callAsync('lights.setAnimation', light._id, animation);
+  });
 
   const pickerColour = tinycolor.fromRatio({
     h: light?.colourHue || 0,

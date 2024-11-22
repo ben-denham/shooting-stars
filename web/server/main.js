@@ -10,11 +10,12 @@ import '/imports/api/blocksPublications';
 import '/imports/api/picturesPublications';
 import '/imports/api/paintPublications';
 
-Meteor.startup(() => {
+Meteor.startup(async () => {
   // Initialise lights.
   for (let idx = 0; idx < LIGHT_COUNT; idx++) {
-    if (!LightsCollection.findOne({idx})) {
-      LightsCollection.insert({
+    const light = await LightsCollection.findOneAsync({idx});
+    if (!light) {
+      await LightsCollection.insertAsync({
         idx,
         colourMode: 'white',
         colourHue: 0.0,

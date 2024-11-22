@@ -77,7 +77,7 @@ export const StoryPage = () => {
 
   const handleLinkClick = ({ key, image }) => {
     setImage(image);
-    Meteor.call('pictures.setPicture', key);
+    Meteor.callAsync('pictures.setPicture', key);
   };
 
   return (

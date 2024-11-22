@@ -14,7 +14,7 @@ export const PICTURE_KEYS = [
 ];
 
 export const picturesMethods = {
-  'pictures.setPicture'(pictureKey) {
+  async 'pictures.setPicture'(pictureKey) {
     check(pictureKey, String);
 
     if (!PICTURE_KEYS.includes(pictureKey)) {
@@ -22,7 +22,7 @@ export const picturesMethods = {
     }
 
     const selector = {key: 'picture'};
-    PicturesCollection.upsert(
+    await PicturesCollection.upsertAsync(
       selector,
       {
         timestamp: (new Date()).getTime(),

@@ -211,7 +211,7 @@ export const PaintPage = () => {
     velocity.current = new D3Mean();
     if (tickVelocities.current.length >= TICKS_PER_UPDATE) {
       if (tickVelocities.current.some((acc) => acc.updated)) {
-        Meteor.call('paint.sendMovement', {
+        Meteor.callAsync('paint.sendMovement', {
           painterId: painterId,
           velocities: tickVelocities.current.map(({x, y, z}) => ({x, y, z})),
           colour: colour.current,
