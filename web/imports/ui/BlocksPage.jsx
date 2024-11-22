@@ -102,16 +102,16 @@ const useStyles = createUseStyles({
 export const BlocksPage = () => {
   const classes = useStyles();
 
-  const { state, isLoading } = useTracker(async (c) => {
+  const { state, isLoading } = useTracker(() => {
     const handler = Meteor.subscribe('blocksStates');
 
     if (!handler.ready()) {
       return { state: null, isLoading: true };
     }
 
-    return await Tracker.withComputation(c, () => {
-      state: BlocksStatesCollection.findOne({key: 'game-state'}).fetchAsync()
-    };
+    const state = BlocksStatesCollection.findOne({key: 'game-state'});
+
+    return { state };
   });
 
   const now = (new Date()).getTime();

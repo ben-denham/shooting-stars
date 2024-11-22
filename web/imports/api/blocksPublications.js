@@ -2,8 +2,8 @@ import { Meteor } from 'meteor/meteor';
 import { BlocksStatesCollection } from '/imports/db/BlocksStatesCollection';
 import { BlocksInputsCollection } from '/imports/db/BlocksInputsCollection';
 
-Meteor.publish('blocksInputs', async function publishBlocksInputs() {
-  return await BlocksInputsCollection.findAsync({}, {
+Meteor.publish('blocksInputs', function publishBlocksInputs() {
+  return BlocksInputsCollection.find({}, {
     fields: {
       key: 1,
       inputs: 1,
@@ -12,7 +12,7 @@ Meteor.publish('blocksInputs', async function publishBlocksInputs() {
 });
 
 Meteor.publish('blocksStates', async function publishBlocksStates() {
-  return await BlocksStatesCollection.findAsync({}, {
+  return BlocksStatesCollection.find({}, {
     fields: {
       key: 1,
       playfield: 1,

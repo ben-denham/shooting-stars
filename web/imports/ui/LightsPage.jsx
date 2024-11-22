@@ -40,20 +40,20 @@ const useStyles = createUseStyles({
 export const LightsPage = () => {
   const classes = useStyles();
 
-  const { lights, isLoading } = useTracker(async (c) => {
+  const { lights, isLoading } = useTracker(() => {
     const handler = Meteor.subscribe('lights');
 
     if (!handler.ready()) {
       return { lights: [], isLoading: true };
     }
 
-    return await Tracker.withComputation(c, () => {
-      lights: LightsCollection.find({}, {sort: { idx: 1 }}).fetchAsync()
-    };
+    const lights = LightsCollection.find({}, {sort: { idx: 1 }}).fetch();
+
+    return { lights };
   });
   const [selectedLightId, setSelectedLightId] = useState(null);
 
-  const selectedLight = await lights.findOne(light => light._id === selectedLightId);
+  const selectedLight = lights.find(light => light._id === selectedLightId);
 
   return (
     <>
