@@ -16,7 +16,7 @@ W = slice(0, 1)
 RGBW = slice(0, 4)
 RGB = slice(1, 4)
 
-FRAME_DELAY_MILLISECONDS = 50
+FRAME_DELAY_MILLISECONDS = 75
 FRAME_DELAY_SECONDS = FRAME_DELAY_MILLISECONDS / 1000
 
 LOCAL_PRESENCE_MAP_SIZE = (40, 40)
@@ -94,6 +94,7 @@ class PresenceState:
                     presence_maps=deque(maxlen=10)
                 )
             presence = self.remote_id_to_presence[remote_id]
+            presence.colour = hexstring_to_rgb(remote_presence['config']['colour'])
 
             for event in remote_presence['presenceEvents']:
                 # Only add an event if it is more recent than all
@@ -117,7 +118,7 @@ class PresenceState:
 
     def get_frame_component(self, *, presence_map, colour):
         light_indexes = self.get_light_map_indexes(presence_map.shape)
-        scaled_presence_map = (presence_map / 255) * 0.11
+        scaled_presence_map = (presence_map / 255) * 0.16
         light_brightness = scaled_presence_map[light_indexes[:, 0], light_indexes[:, 1]]
         return (
             np.broadcast_to(
@@ -132,7 +133,7 @@ class PresenceState:
         )
 
     def tick_frame(self):
-        self.frame = self.frame * 0.9
+        self.frame = self.frame * 0.85
 
         self.frame[:, RGB] += self.get_frame_component(
             presence_map=self.local_presence_map,
@@ -151,10 +152,11 @@ class PresenceState:
 
         # Randomly add new twinkles
         if np.random.rand() > 0.3:
-            self.twinkles[np.random.randint(self.frame.shape[0])] = 0
+            for _ in range(2):
+                self.twinkles[np.random.randint(self.frame.shape[0])] = 0
 
         # Grow each twinkle to max brightness over `twinkle_steps` steps
-        twinkle_steps = 20
+        twinkle_steps = 15
         self.twinkles = {
             twinkle_idx: twinkle_step + 1
             for twinkle_idx, twinkle_step in self.twinkles.items()
