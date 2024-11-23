@@ -71,6 +71,11 @@ class Device:
                     status = ApplicationResponse(response)
                     if status['code'] != 1000:
                         self.connected = False
+                    else:
+                        # We are still connected, remind device to
+                        # stay in rt mode (because it sometimes
+                        # forgets)
+                        self.control.set_mode('rt')
                 except:
                     logging.exception('Device check failed')
                     self.connected = False
@@ -86,8 +91,6 @@ class Device:
         component, with integer values."""
         if not self.connected:
             raise DeviceDisconnected()
-
-        self.control.set_mode('rt')
 
         if array.dtype != FRAME_DTYPE:
             raise ValueError('Invalid frame array')

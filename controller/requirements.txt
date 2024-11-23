@@ -9,3 +9,4 @@ river==0.14.0
 # Pin version that has a piwheel.org wheel
 scipy==1.11.4
 Pillow==10.1.0
+opencv-python==4.10.0.84

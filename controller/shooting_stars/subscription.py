@@ -18,22 +18,51 @@ def del_if_exists(dictionary, key):
         pass
 
 
+class PromiseException(Exception):
+    pass
+
+
+class Promise:
+
+    def __init__(self):
+        self.completed = False
+        self.error = None
+        self.result = None
+
+    def set_error(self, error):
+        self.error = error
+        self.completed = True
+
+    def set_result(self, result):
+        self.result = result
+        self.completed = True
+
+    def await_result(self, sleep_interval=1):
+        while not self.completed:
+            sleep(sleep_interval)
+        if self.error is not None:
+            raise PromiseException(self.error)
+        return self.result
+
+
 class Subscription:
     """Subscribe to lights data via Meteor's DDP protocol:
     https://github.com/meteor/meteor/blob/devel/packages/ddp/DDP.md
     and based on https://github.com/hharnisc/python-ddp/blob/master/DDPClient.py
     """
 
-    def __init__(self, *, url, name, token):
+    def __init__(self, *, url, name, token, sub_param_list=None):
         self.url = url
         self.name = name
+        self.ready = False
         self.state = {}
         self.stopped = True
-        self.sub_id = 0
         self.ws = None
         self._uniq_id = 0
         self.connection_attempts = 0
         self.token = token
+        self.sub_param_list = sub_param_list
+        self.call_promises = {}
 
     def _next_id(self):
         """Get the next id that will be sent to the server"""
@@ -103,12 +132,16 @@ class Subscription:
         if msg == 'failed':
             logging.error(f'Subscription connection failure')
         elif msg == 'connected':
-            self.sub_id += 1
+            param_config = {}
+            if self.sub_param_list is not None:
+                param_config = {'params': self.sub_param_list}
             self.send(ws, {
                 'msg': 'sub',
                 'id': self._next_id(),
                 'name': self.name,
+                **param_config,
             })
+            self.ready = True
         elif msg == 'nosub':
             # Handle error and close the websocket to restart
             logging.error(f'Subscription error: {data["error"]}')
@@ -132,6 +165,15 @@ class Subscription:
             if 'id' in data:
                 pong['id'] = data['id']
             self.send(ws, pong)
+        elif msg == 'result':
+            call_id = data['id']
+            promise = self.call_promises[call_id]
+            error = data.get('error')
+            if error is not None:
+                promise.set_error(error)
+                return
+            result = data.get('result')
+            promise.set_result(result)
         else:
             # Ignore other msg types, which are either unrecognised or
             # we don't need to handle them.
@@ -149,9 +191,12 @@ class Subscription:
 
     def call(self, method, params):
         """Call a Meteor method on the server."""
+        call_id = self._next_id()
+        self.call_promises[call_id] = Promise()
         self.send(self.ws, {
             'msg': 'method',
-            'id': self._next_id(),
+            'id': call_id,
             'method': method,
             'params': params,
         })
+        return self.call_promises[call_id]

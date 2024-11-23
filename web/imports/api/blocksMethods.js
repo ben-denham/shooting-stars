@@ -41,7 +41,7 @@ export const blocksMethods = {
       aiMode: Boolean,
     });
 
-    if (token != Meteor.settings.controllerToken) {
+    if (!(Meteor.settings.blocksControllerTokens.includes(token))) {
       throw new Meteor.Error('Invalid controller token');
     }
 

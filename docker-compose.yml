@@ -1,4 +1,3 @@
-version: '3.0'
 services:
   web:
     build: web
@@ -8,6 +7,13 @@ services:
       - ./web:/home/node/src
     command: ['/home/node/.meteor/meteor', 'run', '--port', '2500',
               '--settings', 'meteor-settings.json']
+  jupyter:
+    build: controller
+    command: ['jupyter', 'lab', '--ip', '0.0.0.0', '--no-browser']
+    ports:
+      - 8888:8888
+    volumes:
+      - ./controller:/home/coder/src
   controller-lights:
     build: controller
     command: ['python', '-m', 'jurigged', '-m', 'shooting_stars', 'ws://localhost:2500',
@@ -35,3 +41,14 @@ services:
       - ./controller:/home/coder/src
     # Connect to host network for visibility of light devices
     network_mode: "host"
+  controller-presence:
+    build: controller
+    command: ['python', '-m', 'jurigged', '-m', 'shooting_stars', 'ws://localhost:2500',
+              'presence', '${PRESENCE_TWINKLY_DEVICE_ID}', '--meteor-token=${METEOR_TOKEN}',
+              '--log-level=info']
+    volumes:
+      - ./controller:/home/coder/src
+    # Connect to host network for visibility of light devices
+    network_mode: "host"
+    devices:
+      - /dev/video0:/dev/video0

@@ -7,8 +7,9 @@ from .device import Device
 from .animation import run_animation, AnimationState
 from .blocks import BlocksTrainer, run_blocks
 from .cone import run_cone
+from .presence import run_presence
 
-ACTIVITIES = ['lights', 'blocks', 'cone']
+ACTIVITIES = ['lights', 'blocks', 'cone', 'presence']
 
 parser = ArgumentParser(prog='shooting_stars',
                         description='Christmas lights controller')
@@ -116,6 +117,34 @@ def cone_activity(args):
             device.stop_monitor()
 
 
+def presence_activity(args):
+    device = None
+    try:
+        presence_sub = Subscription(
+            url=f'{args.meteor_url}/websocket',
+            name='presence',
+            token=args.meteor_token,
+            sub_param_list=[
+                args.meteor_token,
+            ]
+        )
+        presence_sub.start()
+
+        device = Device(device_id=args.twinkly_device_id)
+        device.start_monitor()
+
+        run_presence(
+            device=device,
+            presence_sub=presence_sub,
+        )
+    finally:
+        # Clean up threads
+        if presence_sub is not None:
+            presence_sub.stop()
+        if device is not None:
+            device.stop_monitor()
+
+
 def main():
     args = parser.parse_args()
 
@@ -129,6 +158,8 @@ def main():
         blocks_activity(args)
     elif args.activity == 'cone':
         cone_activity(args)
+    elif args.activity == 'presence':
+        presence_activity(args)
     else:
         logging.error(f'Unrecognised activity: {args.activity}')
 
