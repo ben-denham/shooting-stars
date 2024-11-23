@@ -9,13 +9,14 @@ import cv2 as cv
 import numpy as np
 
 from .device import FRAME_DTYPE, DeviceDisconnected
+from .utils import hexstring_to_rgb
 
 COMPONENT_COUNT = 4
 W = slice(0, 1)
 RGBW = slice(0, 4)
 RGB = slice(1, 4)
 
-FRAME_DELAY_MILLISECONDS = 100
+FRAME_DELAY_MILLISECONDS = 50
 FRAME_DELAY_SECONDS = FRAME_DELAY_MILLISECONDS / 1000
 
 LOCAL_PRESENCE_MAP_SIZE = (40, 40)
@@ -23,7 +24,7 @@ LOCAL_PRESENCE_MAP_SIZE = (40, 40)
 
 @dataclass
 class Presence:
-    config: dict[str, Any]
+    colour: np.ndarray
     last_timestamp: int
     presence_maps: deque[np.ndarray]
 
@@ -32,12 +33,13 @@ class PresenceState:
 
     def __init__(self, *, light_positions: np.ndarray, local_config: dict[str, Any]):
         self.light_positions = light_positions
-        self.local_config = local_config
+        self.local_colour = hexstring_to_rgb(local_config['colour'])
         self.local_presence_map = np.zeros(LOCAL_PRESENCE_MAP_SIZE)
         self.remote_id_to_presence = {}
         self.last_image = None
         self.cap = None
         self.frame = np.zeros((len(self.light_positions), COMPONENT_COUNT), dtype=FRAME_DTYPE)
+        self.twinkles = {}
 
     def __enter__(self):
         cap_opened = False
@@ -86,7 +88,7 @@ class PresenceState:
                 # max timestamp
                 prev_timestamps = [event['timestamp'] for event in remote_presence['presenceEvents']]
                 self.remote_id_to_presence[remote_id] = Presence(
-                    config=remote_presence['config'],
+                    colour=hexstring_to_rgb(remote_presence['config']['colour']),
                     last_timestamp=(max(prev_timestamps) if prev_timestamps else 0),
                     # Only keep a fixed number of recent maps
                     presence_maps=deque(maxlen=10)
@@ -113,26 +115,55 @@ class PresenceState:
         indexes = np.floor(zero_one_indexes * max_indexes).astype(int)
         return indexes
 
+    def get_frame_component(self, *, presence_map, colour):
+        light_indexes = self.get_light_map_indexes(presence_map.shape)
+        scaled_presence_map = (presence_map / 255) * 0.11
+        light_brightness = scaled_presence_map[light_indexes[:, 0], light_indexes[:, 1]]
+        return (
+            np.broadcast_to(
+                light_brightness,
+                (colour.shape[0], light_brightness.shape[0]),
+            ).T
+            *
+            np.broadcast_to(
+                colour,
+                (light_brightness.shape[0], colour.shape[0]),
+            )
+        )
+
     def tick_frame(self):
-        start_time = monotonic()
-        self.frame[:, :] = 0
+        self.frame = self.frame * 0.9
 
-        indexes = self.get_light_map_indexes(self.local_presence_map.shape)
-        self.frame[:, 1] = self.local_presence_map[indexes[:, 0], indexes[:, 1]]
-
-        try:
-            remote_presence = self.remote_id_to_presence[2]
+        self.frame[:, RGB] += self.get_frame_component(
+            presence_map=self.local_presence_map,
+            colour=self.local_colour,
+        )
+        for remote_presence in self.remote_id_to_presence.values():
             try:
                 presence_map = remote_presence.presence_maps.popleft()
             except IndexError:
                 pass
             else:
-                indexes = self.get_light_map_indexes(presence_map.shape)
-                self.frame[:, 3] = presence_map[indexes[:, 0], indexes[:, 1]]
-        except Exception as ex:
-            logging.error(str(ex))
+                self.frame[:, RGB] += self.get_frame_component(
+                    presence_map=presence_map,
+                    colour=remote_presence.colour,
+                )
 
-        self.frame[:, W] = 10
+        # Randomly add new twinkles
+        if np.random.rand() > 0.3:
+            self.twinkles[np.random.randint(self.frame.shape[0])] = 0
+
+        # Grow each twinkle to max brightness over `twinkle_steps` steps
+        twinkle_steps = 20
+        self.twinkles = {
+            twinkle_idx: twinkle_step + 1
+            for twinkle_idx, twinkle_step in self.twinkles.items()
+            if twinkle_step < twinkle_steps
+        }
+        for twinkle_idx, twinkle_step in self.twinkles.items():
+            self.frame[twinkle_idx, W] += int((1.1 / twinkle_steps) * 255)
+
+        self.frame = np.clip(self.frame, 0, 255).astype(FRAME_DTYPE)
 
 
 def run_presence(*, device, presence_sub):
@@ -140,9 +171,7 @@ def run_presence(*, device, presence_sub):
 
     while not presence_sub.ready:
         sleep(1)
-    local_config_promise = presence_sub.call('presence.getConfig', [
-        presence_sub.token,
-    ])
+    local_config_promise = presence_sub.call('presence.getConfig', [presence_sub.token])
     local_config = local_config_promise.await_result()
 
     while True:

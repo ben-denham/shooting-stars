@@ -4,6 +4,14 @@ import colorsys
 from .device import FRAME_DTYPE
 
 
+def hexstring_to_rgb(hexstring):
+    hexstring = hexstring.lstrip('#')
+    r = int(hexstring[0:2], 16)
+    g = int(hexstring[2:4], 16)
+    b = int(hexstring[4:6], 16)
+    return np.array([r, g, b]).astype(FRAME_DTYPE)
+
+
 def hsv_to_rgb(h, s, v):
     rgb = np.array(colorsys.hsv_to_rgb(h, s, v))
     return (rgb * 255).round().astype(FRAME_DTYPE)
