@@ -16,10 +16,10 @@ W = slice(0, 1)
 RGBW = slice(0, 4)
 RGB = slice(1, 4)
 
-FRAME_DELAY_MILLISECONDS = 75
+FRAME_DELAY_MILLISECONDS = 80
 FRAME_DELAY_SECONDS = FRAME_DELAY_MILLISECONDS / 1000
 
-LOCAL_PRESENCE_MAP_SIZE = (40, 40)
+LOCAL_PRESENCE_MAP_SIZE = (30, 30)
 
 
 @dataclass
@@ -118,7 +118,7 @@ class PresenceState:
 
     def get_frame_component(self, *, presence_map, colour):
         light_indexes = self.get_light_map_indexes(presence_map.shape)
-        scaled_presence_map = (presence_map / 255) * 0.16
+        scaled_presence_map = (presence_map / 255) * 0.02
         light_brightness = scaled_presence_map[light_indexes[:, 0], light_indexes[:, 1]]
         return (
             np.broadcast_to(
@@ -133,28 +133,42 @@ class PresenceState:
         )
 
     def tick_frame(self):
-        self.frame = self.frame * 0.85
+        self.frame = self.frame.astype(float)
 
-        self.frame[:, RGB] += self.get_frame_component(
-            presence_map=self.local_presence_map,
-            colour=self.local_colour,
-        )
+        components = [
+            self.get_frame_component(
+                presence_map=self.local_presence_map,
+                colour=self.local_colour,
+            ),
+        ]
         for remote_presence in self.remote_id_to_presence.values():
             try:
                 presence_map = remote_presence.presence_maps.popleft()
             except IndexError:
                 pass
             else:
-                self.frame[:, RGB] += self.get_frame_component(
+                components.append(self.get_frame_component(
                     presence_map=presence_map,
                     colour=remote_presence.colour,
-                )
+                ))
 
+        # Fade-out any light+colour that isn't being added to.
+        fadeout_mask = np.full(self.frame[:, RGB].shape, True)
+        for component in components:
+            fadeout_mask = fadeout_mask & (component == 0)
+        fadeout = 1 - (fadeout_mask * 0.25)
+        self.frame[:, RGB] = self.frame[:, RGB] * fadeout
+
+        # Add motion to lights
+        for component in components:
+            self.frame[:, RGB] += component
+
+        # Fade last twinkles
+        self.frame[:, W] = self.frame[:, W] * 0.85
         # Randomly add new twinkles
         if np.random.rand() > 0.3:
             for _ in range(2):
                 self.twinkles[np.random.randint(self.frame.shape[0])] = 0
-
         # Grow each twinkle to max brightness over `twinkle_steps` steps
         twinkle_steps = 15
         self.twinkles = {
