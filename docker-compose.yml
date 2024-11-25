@@ -44,7 +44,7 @@ services:
   controller-presence:
     build: controller
     command: ['python', '-m', 'jurigged', '-m', 'shooting_stars', 'ws://localhost:2500',
-              'presence', '${PRESENCE_TWINKLY_DEVICE_ID}', '--meteor-token=${METEOR_TOKEN}',
+              'presence', '${PRESENCE_TWINKLY_DEVICE_ID}', '--meteor-token=${PRESENCE_METEOR_TOKEN}',
               '--log-level=info']
     volumes:
       - ./controller:/home/coder/src
