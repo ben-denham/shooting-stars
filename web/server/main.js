@@ -51,6 +51,6 @@ DDPRateLimiter.addRule(
     // Rate limit per connection ID
     connectionId() { return true; }
   },
-  // Max 20 requests every second.
-  20, 1000
+  // Max 100 requests every second.
+  100, 1000
 );

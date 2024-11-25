@@ -29,10 +29,33 @@ Python.
 
 ## Web Deployment
 
-```
-make run-bash service=web
-meteor deploy <subdomain>.au.meteorapp.com --free --mongo --settings meteor-settings.json
-```
+1. Set up `web/meteor-settings.json` following this format:
+   ```
+   {
+     "blocksControllerTokens": [
+       "secret_token_1"
+     ],
+     "presenceControllerTokensToConfig": {
+       "secret_token_1": {
+         "id": 1,
+         "colour": "#FF0000"
+       },
+       "secret_token_2": {
+         "id": 2,
+         "colour": "#00FF00"
+       },
+       "secret_token_3": {
+         "id": 3,
+         "colour": "#00FF00"
+       }
+     }
+   }
+   ```
+2. Run:
+   ```
+   make run-bash service=web
+   meteor deploy <subdomain>.au.meteorapp.com --free --mongo --settings meteor-settings.json
+    ```
 
 ## Controller Deployment
 
@@ -50,19 +73,23 @@ meteor deploy <subdomain>.au.meteorapp.com --free --mongo --settings meteor-sett
   * `controller/shooting-stars-lights.service`
   * `controller/shooting-stars-blocks.service`
   * `controller/shooting-stars-cone.service`
+  * `controller/shooting-stars-presence.service`
   * Note that any percentages in the token must be escaped by formatting them as double percentages.
 * Start with:
   * `sudo systemctl restart shooting-stars-lights`
   * `sudo systemctl restart shooting-stars-blocks`
   * `sudo systemctl restart shooting-stars-cone`
+  * `sudo systemctl restart shooting-stars-presence`
 * Start at boot with:
   * `sudo systemctl enable shooting-stars-lights`
   * `sudo systemctl enable shooting-stars-blocks`
   * `sudo systemctl enable shooting-stars-cone`
+  * `sudo systemctl enable shooting-stars-presence`
 * View logs with:
   * `journalctl -fu shooting-stars-lights.service`
   * `journalctl -fu shooting-stars-blocks.service`
   * `journalctl -fu shooting-stars-cone.service`
+  * `journalctl -fu shooting-stars-presence.service`
 * Reload changes to service files with `sudo systemctl daemon-reload`
 
 ## Misc
