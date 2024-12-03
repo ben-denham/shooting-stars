@@ -9,7 +9,7 @@ Type=idle
 
 User=pi
 WorkingDirectory=/home/pi/shooting-stars/controller
-ExecStart=/usr/bin/python -m shooting_stars wss://<subdomain>.au.meteorapp.com blocks <strings-device-id> --meteor-token='<meteor-token>' --log-level=warning
+ExecStart=/home/pi/shooting-stars/controller/bin/python -m shooting_stars wss://<subdomain>.au.meteorapp.com blocks <strings-device-id> --meteor-token='<meteor-token>' --log-level=warning
 
 Restart=always
 RestartSec=5

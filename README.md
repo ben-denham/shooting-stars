@@ -92,6 +92,47 @@ Python.
   * `journalctl -fu shooting-stars-presence.service`
 * Reload changes to service files with `sudo systemctl daemon-reload`
 
+### Full Presence Setup
+
+1. Install Raspberry Pi OS
+   1. Pre-configure from Raspberry Pi Imager:
+      1. Username and password
+      2. Wi-Fi
+      3. SSH Key
+      4. Locale settings
+2. Power on Raspberry Pi
+3. Connect to your Raspberry Pi
+   1. Make sure you're on the same 2Ghz network (ssh seems flakey otherwise)
+   2. Find possible IPs with: `nmap -sP 192.168.1.0/24`
+   3. Connect with: `ssh <ip-address>`
+4. Basic Raspberry Pi configuration:
+   1. Require password for sudo: `sudo mv /etc/sudoers.d/010_pi-nopasswd /etc/sudoers.d/.010_pi-nopasswd`
+   2. `sudo apt update` and `sudo apt upgrade`
+5. Enable shutdown via pins
+   1. Add this line to `/boot/firmware/config.txt`:
+      * `dtoverlay=gpio-shutdown,gpio_pin=21`
+   2. Reboot
+   3. Connect jumper leads to pins `39` (ground) and `40` (GPIO 20)
+      * These are the two pins at the end closest to the USB ports
+   4. Test safe shutdown:
+      1. Touch two leads for 2 seconds
+      2. Wait for green LED to stop blinking
+      3. Disconnect power
+6. Set up Presence
+   1. `sudo apt install python3.11-dev libatlas-base-dev`
+   2. `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
+      * Select standard installation
+      * Start a new SSH session to update `$PATH`
+   3. `git clone https://github.com/ben-denham/shooting-stars.git`
+   4. `cd shooting-stars/controller`
+   5. `python3 -m venv .venv`
+   6. `source .venv/bin/activate`
+   7. `python -m pip install -r requirements.txt`
+   8. Copy configured `shooting-stars-presence.service` to `/etc/systemd/system/`
+   9. `sudo systemctl enable shooting-stars-presence`
+   10. `sudo systemctl daemon-reload`
+   11. `sudo systemctl restart shooting-stars-presence`
+
 ## Misc
 
 * `assets/cone-layout-backup.json` can be restored with xled's `set_led_layout()`.
