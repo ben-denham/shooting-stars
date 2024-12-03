@@ -216,7 +216,7 @@ def run_presence(*, device, presence_sub):
 
             # Get local presence_map from webcam and send to server
             local_presence_map = presence_state.update_local_presence_map()
-            if local_presence_map is not None:
+            if local_presence_map is not None and local_presence_map.sum() > 0.0:
                 try:
                     presence_sub.call('presence.sendPresence', [
                         presence_sub.token,
