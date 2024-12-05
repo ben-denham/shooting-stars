@@ -55,7 +55,7 @@ class PresenceState:
     def update_local_presence_map(self):
         ret, image = self.cap.read()
         if not ret:
-            logging.info('Failed to capture image')
+            logging.warning('Failed to capture image')
             return None
 
         image = cv.resize(image, (500, 500))
@@ -223,7 +223,7 @@ def run_presence(*, device, presence_sub):
                         local_presence_map.tolist(),
                     ])
                 except Exception as ex:
-                    logging.info(f'sendPresence failed: {ex}')
+                    logging.warning(f'sendPresence failed: {ex}')
 
             # Animate a frame of animation
             presence_state.tick_frame()
@@ -231,5 +231,5 @@ def run_presence(*, device, presence_sub):
             try:
                 device.set_frame_array(presence_state.frame)
             except DeviceDisconnected:
-                logging.info(f'Device disconnected')
+                logging.warning(f'Device disconnected')
             logging.info(f'Frame render time: {monotonic() - frame_start_time}')
