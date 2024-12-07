@@ -96,12 +96,16 @@ class PresenceState:
             presence = self.remote_id_to_presence[remote_id]
             presence.colour = hexstring_to_rgb(remote_presence['config']['colour'])
 
+            new_timestamps = []
             for event in remote_presence['presenceEvents']:
                 # Only add an event if it is more recent than all
                 # previous events
                 if event['timestamp'] <= presence.last_timestamp:
                     continue
+                new_timestamps.append(event['timestamp'])
                 presence.presence_maps.append(np.array(event['presenceMap']))
+            if new_timestamps:
+                presence.last_timestamp = max(new_timestamps)
 
     @cache
     def get_light_map_indexes(self, map_shape: tuple[int, int]) -> np.ndarray:
@@ -203,8 +207,10 @@ def run_presence(*, device, presence_sub):
         for point in layout['coordinates']
     ])
 
+    tick = 0
     with PresenceState(light_positions=light_positions, local_config=local_config) as presence_state:
         while True:
+            tick = (tick + 1) % 10_000
             next_time = next_time + FRAME_DELAY_SECONDS
             sleep(max(0, next_time - monotonic()))
             frame_start_time = monotonic()
@@ -216,7 +222,7 @@ def run_presence(*, device, presence_sub):
 
             # Get local presence_map from webcam and send to server
             local_presence_map = presence_state.update_local_presence_map()
-            if local_presence_map is not None and local_presence_map.sum() > 0.0:
+            if local_presence_map is not None and local_presence_map.sum() > 0.0 and (tick % 6 == 0):
                 try:
                     presence_sub.call('presence.sendPresence', [
                         presence_sub.token,
