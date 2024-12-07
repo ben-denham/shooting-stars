@@ -16,7 +16,15 @@ export const presenceMethods = {
     }
     const presenceConfig = Meteor.settings.presenceControllerTokensToConfig[token];
 
-    return presenceConfig;
+    return {
+      ...presenceConfig,
+      frameDelayMilliseconds: 80,
+      framesBetweenSend: 6,
+      frameLingerMilliseconds: 5000,
+      presenceMapSize: [30, 30],
+      presenceScalingFactor: 0.02,
+      presenceFadeoutFactor: 0.25,
+    };
   },
   async 'presence.sendPresence'(token, presenceMap) {
     check(token, String);

@@ -16,12 +16,6 @@ W = slice(0, 1)
 RGBW = slice(0, 4)
 RGB = slice(1, 4)
 
-FRAME_DELAY_MILLISECONDS = 80
-FRAME_DELAY_SECONDS = FRAME_DELAY_MILLISECONDS / 1000
-SEND_EVERY_N = 6
-
-LOCAL_PRESENCE_MAP_SIZE = (30, 30)
-
 
 @dataclass
 class Presence:
@@ -35,7 +29,14 @@ class PresenceState:
     def __init__(self, *, light_positions: np.ndarray, local_config: dict[str, Any]):
         self.light_positions = light_positions
         self.local_colour = hexstring_to_rgb(local_config['colour'])
-        self.local_presence_map = np.zeros(LOCAL_PRESENCE_MAP_SIZE)
+        self.frame_delay_milliseconds = local_config['frameDelayMilliseconds']
+        self.frames_between_send = local_config['framesBetweenSend']
+        self.local_presence_map_size = tuple(local_config['presenceMapSize'])
+        self.frame_linger_milliseconds = local_config['frameLingerMilliseconds']
+        self.presence_scaling_factor = local_config['presenceScalingFactor']
+        self.presence_fadeout_factor = local_config['presenceFadeoutFactor']
+
+        self.local_presence_map = np.zeros(self.local_presence_map_size)
         self.remote_id_to_presence = {}
         self.last_image = None
         self.cap = None
@@ -61,7 +62,7 @@ class PresenceState:
 
         image = cv.resize(image, (500, 500))
         image = cv.GaussianBlur(image, (19, 19), 0)
-        image = cv.resize(image, LOCAL_PRESENCE_MAP_SIZE)
+        image = cv.resize(image, self.local_presence_map_size)
         # Flip along both axes so that 0,0 is bottom left
         image = cv.flip(image, -1)
 
@@ -107,16 +108,20 @@ class PresenceState:
                 if event['timestamp'] <= presence.last_timestamp:
                     continue
                 presence.last_timestamp = event['timestamp']
-                presence.presence_maps.append(np.array(event['presenceMap']))
+                # Duplicate presence_maps to account for delay between
+                # remote sends
+                presence_map = np.array(event['presenceMap'])
+                for _ in range(self.frames_between_send):
+                    presence.presence_maps.append(presence_map)
 
             # If we have no presence_maps, then include the latest if
-            # it is no more than 10 seconds old.
+            # it is no more than a few seconds old.
             if (
                     (len(presence.presence_maps) == 0) and
                     (len(events) > 0) and
-                    (events[-1]['timestamp'] >= (presence.last_timestamp - 10_000))
+                    (events[-1]['timestamp'] >= (presence.last_timestamp - self.frame_linger_milliseconds))
             ):
-                presence.last_timestamp += FRAME_DELAY_MILLISECONDS
+                presence.last_timestamp += self.frame_delay_milliseconds
                 presence.presence_maps.append(np.array(events[-1]['presenceMap']))
 
 
@@ -135,7 +140,7 @@ class PresenceState:
 
     def get_frame_component(self, *, presence_map, colour):
         light_indexes = self.get_light_map_indexes(presence_map.shape)
-        scaled_presence_map = (presence_map / 255) * 0.02
+        scaled_presence_map = (presence_map / 255) * self.presence_scaling_factor
         light_brightness = scaled_presence_map[light_indexes[:, 0], light_indexes[:, 1]]
         return (
             np.broadcast_to(
@@ -173,7 +178,7 @@ class PresenceState:
         fadeout_mask = np.full(self.frame[:, RGB].shape, True)
         for component in components:
             fadeout_mask = fadeout_mask & (component == 0)
-        fadeout = 1 - (fadeout_mask * 0.25)
+        fadeout = 1 - (fadeout_mask * self.presence_fadeout_factor)
         self.frame[:, RGB] = self.frame[:, RGB] * fadeout
 
         # Add motion to lights
@@ -220,11 +225,16 @@ def run_presence(*, device, presence_sub):
         for point in layout['coordinates']
     ])
 
+    frame_delay_seconds = local_config['frameDelayMilliseconds'] / 1000
+    frames_between_send = local_config['framesBetweenSend']
+
+    max_tick = 1_000 * frames_between_send
     tick = 0
+
     with PresenceState(light_positions=light_positions, local_config=local_config) as presence_state:
         while True:
-            tick = (tick + 1) % 10_000
-            next_time = next_time + FRAME_DELAY_SECONDS
+            tick = (tick + 1) % max_tick
+            next_time = next_time + frame_delay_seconds
             sleep(max(0, next_time - monotonic()))
             frame_start_time = monotonic()
 
@@ -235,7 +245,7 @@ def run_presence(*, device, presence_sub):
 
             # Get local presence_map from webcam and send to server
             local_presence_map = presence_state.update_local_presence_map()
-            if local_presence_map is not None and local_presence_map.sum() > 0.0 and (tick % SEND_EVERY_N == 0):
+            if local_presence_map is not None and local_presence_map.sum() > 0.0 and (tick % frames_between_send == 0):
                 try:
                     presence_sub.call('presence.sendPresence', [
                         presence_sub.token,
