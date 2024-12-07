@@ -116,6 +116,7 @@ class PresenceState:
                     (len(events) > 0) and
                     (events[-1]['timestamp'] >= (presence.last_timestamp - 10_000))
             ):
+                presence.last_timestamp += FRAME_DELAY_MILLISECONDS
                 presence.presence_maps.append(np.array(events[-1]['presenceMap']))
 
 
