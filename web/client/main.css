@@ -1,10 +1,13 @@
+html, body {
+    overscroll-behavior: none !important;
+}
+
 body {
     padding: 0;
     margin: 0;
     font-family: sans-serif;
     background: #030303;
     color: white;
-    overscroll-behavior: none;
 }
 
 html, body, #react-target {
