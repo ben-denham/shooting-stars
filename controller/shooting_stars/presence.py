@@ -57,7 +57,9 @@ class PresenceState:
     def update_local_presence_map(self):
         ret, image = self.cap.read()
         if not ret:
-            logging.warning('Failed to capture image')
+            logging.warning('Failed to capture image, reconnecting')
+            self.__exit__(None, None, None)
+            self.__enter__()
             return None
 
         image = cv.resize(image, (500, 500))
