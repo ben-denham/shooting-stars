@@ -397,6 +397,7 @@ def run_blocks(*, device, inputs_sub, pictures_sub, trainer):
 
     while True:
         game = TrainableBlocksGame.new_game(trainer)
+        update_promises = []
 
         while True:
             next_time = next_time + FRAME_DELAY_SECONDS
@@ -504,14 +505,16 @@ def run_blocks(*, device, inputs_sub, pictures_sub, trainer):
                     logging.info('Device disconnected')
 
             # Send game to web (web_updates_enabled is set to False
-            # after entering AI mode).
-            if web_updates_enabled or DEBUG:
+            # after entering AI mode). Have at most 2 pending updates.
+            update_promises = [promise for promise in update_promises if not promise.completed]
+            if (web_updates_enabled or DEBUG) and len(update_promises) < 2:
                 try:
-                    inputs_sub.call('blocks.updateState', [inputs_sub.token, {
+                    update_promise = inputs_sub.call('blocks.updateState', [inputs_sub.token, {
                         'score': game.score,
                         'playfield': np.array(game.playfield).tolist(),
                         'aiMode': game.ai_mode,
                     }])
+                    update_promises.append(update_promise)
                     if game.ai_mode:
                         web_updates_enabled = False
                 except Exception as ex:
