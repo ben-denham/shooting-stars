@@ -25,14 +25,6 @@ Python.
        "secret_token_1": {
          "id": 1,
          "colour": "#FF0000"
-       },
-       "secret_token_2": {
-         "id": 2,
-         "colour": "#00FF00"
-       },
-       "secret_token_3": {
-         "id": 3,
-         "colour": "#0000FF"
        }
      }
    }
@@ -65,6 +57,18 @@ Python.
        "secret_token_3": {
          "id": 3,
          "colour": "#0000FF"
+       }
+     },
+     "packages": {
+       "mongo": {
+         "options": {
+           "tlsAllowInvalidCertificates": true
+         }
+       }
+     },
+     "galaxy.meteor.com": {
+       "env": {
+         "MONGO_URL": "url_for_shared_cluster_on_galaxy_or_free_mongo_atlas"
        }
      }
    }
