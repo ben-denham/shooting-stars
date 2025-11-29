@@ -11,12 +11,30 @@ Python.
    ICICLES_TWINKLY_DEVICE_ID=<device-id>
    GRID_TWINKLY_DEVICE_ID=<device-id>
    CONE_TWINKLY_DEVICE_ID=<device-id>
+   PRESENCE_TWINKLY_DEVICE_ID=<device-id>
    METEOR_TOKEN=<securely-generated-string>
+   PRESENCE_METEOR_TOKEN=<securely-generated-string>
    ```
 3. Create a `web/meteor-settings.json` file in this directory with the following format:
    ```
    {
-     "controllerToken": "<securely-generated-string>"
+     "blocksControllerTokens": [
+       "secret_token_1"
+     ],
+     "presenceControllerTokensToConfig": {
+       "secret_token_1": {
+         "id": 1,
+         "colour": "#FF0000"
+       },
+       "secret_token_2": {
+         "id": 2,
+         "colour": "#00FF00"
+       },
+       "secret_token_3": {
+         "id": 3,
+         "colour": "#0000FF"
+       }
+     }
    }
    ```
 4. Run:
@@ -46,7 +64,7 @@ Python.
        },
        "secret_token_3": {
          "id": 3,
-         "colour": "#00FF00"
+         "colour": "#0000FF"
        }
      }
    }
