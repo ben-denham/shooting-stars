@@ -31,9 +31,9 @@ export const paintMethods = {
     });
 
     const painterIds = Object.keys(record.painterMovements);
-    // Keep a maximum of 10 movements per painter.
+    // Keep a maximum of 20 movements per painter.
     painterIds.forEach((painterId) => {
-      record.painterMovements[painterId] = record.painterMovements[painterId].slice(-10);
+      record.painterMovements[painterId] = record.painterMovements[painterId].slice(-20);
     });
     // Keep only the 10 most recently updated painters.
     const painterLastUpdated = (painterId) => (record.painterMovements[painterId][-1]?.timestamp || 0);
