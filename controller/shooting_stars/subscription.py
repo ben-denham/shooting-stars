@@ -1,3 +1,4 @@
+from time import monotonic
 from datetime import datetime
 import websocket
 import json
@@ -25,6 +26,7 @@ class PromiseException(Exception):
 class Promise:
 
     def __init__(self):
+        self.started = monotonic()
         self.completed = False
         self.error = None
         self.result = None

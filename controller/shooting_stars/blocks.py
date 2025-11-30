@@ -506,7 +506,14 @@ def run_blocks(*, device, inputs_sub, pictures_sub, trainer):
 
             # Send game to web (web_updates_enabled is set to False
             # after entering AI mode). Have at most 2 pending updates.
-            update_promises = [promise for promise in update_promises if not promise.completed]
+            update_promises = [
+                promise for promise in update_promises
+                if (
+                        not promise.completed
+                        # Discard a promise if it isn't fulfilled in 5 seconds.
+                        and (frame_start_time - promise.started) < 5_000
+                )
+            ]
             if (web_updates_enabled or DEBUG) and len(update_promises) < 2:
                 try:
                     update_promise = inputs_sub.call('blocks.updateState', [inputs_sub.token, {
